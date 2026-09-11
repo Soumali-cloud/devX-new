@@ -109,6 +109,22 @@ export async function getActiveIcebergs() {
   return MOCK_ICEBERGS;
 }
 
+/** Sparse, high-concentration sea-ice markers supplied by the forecast backend. */
+export async function getSignificantSeaIcePoints(day, minimumConcentration = 0.8) {
+  const { offlineMode } = getStoredSettings();
+  if (offlineMode) return [];
+  try {
+    const client = createApiClient();
+    const res = await client.get(`/api/v1/forecast/${day}/sea-ice-points`, {
+      params: { minimum_concentration: minimumConcentration, max_points: 36 }
+    });
+    return res.data?.points || [];
+  } catch (err) {
+    console.warn('[HimYatra API] Unable to load significant sea-ice points:', err.message);
+    return [];
+  }
+}
+
 /** Environmental data-source availability for the melt module. */
 export async function getEnvironmentalSources() {
   const client = createApiClient();

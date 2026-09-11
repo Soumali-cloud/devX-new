@@ -10,7 +10,8 @@ import {
   CheckCircle2,
   Gauge,
   ArrowUpRight,
-  Info
+  Info,
+  BarChart3
 } from 'lucide-react';
 import {
   BarChart,
@@ -72,8 +73,9 @@ export function Dashboard() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-700/80 light:border-slate-200 pb-5">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-ice-cyan light:text-research-blue uppercase tracking-widest">
-                Hydrodynamic Analytics
+              <span className="text-xs font-mono font-bold text-ice-cyan light:text-research-blue uppercase tracking-widest flex items-center gap-1.5">
+                <BarChart3 className="w-3.5 h-3.5" />
+                Power BI Operational Reporting
               </span>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-research-blue/40 light:bg-ice-tint text-ice-cyan light:text-research-blue border border-ice-cyan/30 font-semibold">
                 IMO Polar Code Compliant
@@ -198,7 +200,7 @@ export function Dashboard() {
 
         </div>
 
-        {/* Charts Grid */}
+        {/* Power BI-style operational report visuals */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Main Bar Chart: 2 Columns */}
@@ -206,7 +208,7 @@ export function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-base text-white light:text-ocean-navy">
-                  Fuel Burn vs. Speed Penalty Across Polar Ice Classes
+                  Power BI: Fuel Burn vs. Speed Penalty
                 </h3>
                 <p className="text-xs text-slate-400">
                   Lindqvist hydrodynamic hull resistance simulation
@@ -246,7 +248,7 @@ export function Dashboard() {
           <div className="p-6 rounded-2xl border border-slate-700/80 light:border-slate-200 bg-ocean-navy/80 light:bg-white space-y-4 shadow-sm flex flex-col justify-between">
             <div>
               <h3 className="font-bold text-base text-white light:text-ocean-navy">
-                Autonomous Navigation Balance
+                Power BI: Navigation Balance
               </h3>
               <p className="text-xs text-slate-400">
                 Multi-objective capability envelope

@@ -16,11 +16,15 @@ import {
   Lock,
   Unlock,
   LogOut,
-  Mail
+  Mail,
+  Cpu,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigation } from '../context/NavigationContext';
 import { checkHealth } from '../services/api';
+import { MissionArchitecture } from './MissionArchitecture';
 
 export function Settings() {
   const { theme, toggleTheme, isDark } = useTheme();
@@ -57,6 +61,7 @@ export function Settings() {
   const [testResult, setTestResult] = useState(null);
   const [testing, setTesting] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [architectureOpen, setArchitectureOpen] = useState(false);
 
   const handleAdminSubmit = (e) => {
     e.preventDefault();
@@ -358,6 +363,20 @@ export function Settings() {
           </div>
 
         </div>
+
+        <div className="p-6 rounded-2xl border border-ice-cyan/30 bg-research-blue/15 light:bg-ice-tint flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="text-xs font-mono font-bold text-ice-cyan light:text-research-blue uppercase tracking-widest">Administrator module</div>
+            <h2 className="mt-1 text-lg font-bold text-white light:text-ocean-navy flex items-center gap-2"><Cpu className="w-4 h-4 text-ice-cyan" />System Architecture</h2>
+            <p className="mt-1 text-xs text-slate-300 light:text-slate-600">Inspect the hydrodynamic, machine-learning, and decision-support architecture.</p>
+          </div>
+          <button onClick={() => setArchitectureOpen((open) => !open)} aria-expanded={architectureOpen} className="px-4 py-2.5 rounded-xl bg-ice-cyan text-midnight text-xs font-bold hover:bg-sky-400 transition-colors flex items-center gap-1.5">
+            <span>{architectureOpen ? 'Hide Architecture' : 'View Architecture'}</span>
+            {architectureOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+
+        {architectureOpen && <MissionArchitecture embedded />}
 
         {/* Sliders Grid */}
         <div className="p-6 rounded-2xl border border-slate-700/80 light:border-slate-200 bg-ocean-navy/80 light:bg-white space-y-6 shadow-sm">

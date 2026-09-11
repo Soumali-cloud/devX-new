@@ -7,8 +7,6 @@ import {
   Activity,
   BarChart3,
   Sliders,
-  Cpu,
-  Newspaper,
   Sun,
   Moon,
   Radio,
@@ -65,8 +63,6 @@ export function Navbar() {
     { id: 'dashboard', label: 'Analytics', icon: Activity, desc: 'Vessel fuel, ice & hull stress' },
     { id: 'sea-level-impact', label: 'Sea-Level Impact', icon: Waves, desc: 'Iceberg melt & net contribution' },
     { id: 'visualizations', label: 'Scientific Data', icon: BarChart3, desc: '316x332 grid & ERA5 vectors' },
-    { id: 'architecture', label: 'Architecture', icon: Cpu, desc: 'Hydrodynamic & ML models' },
-    { id: 'news', label: 'Polar News', icon: Newspaper, desc: 'Live dispatches & ice bulletins' },
     { id: 'settings', label: 'Admin Settings', icon: Sliders, desc: 'Operational parameters', restricted: true },
   ];
 
@@ -114,9 +110,6 @@ export function Navbar() {
                 <div className="flex items-center gap-2">
                   <span className="font-extrabold tracking-wider text-base sm:text-lg text-white light:text-ocean-navy uppercase font-sans">
                     HimYatra
-                  </span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-ice-cyan/15 light:bg-ice-tint text-ice-cyan light:text-research-blue border border-ice-cyan/30 font-bold tracking-tight">
-                    Polar DSS
                   </span>
                 </div>
                 <span className="text-[10px] sm:text-[11px] text-slate-400 light:text-slate-600 font-medium tracking-tight truncate max-w-[170px] sm:max-w-none">

@@ -10,7 +10,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Literal, Optional
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from fastapi.responses import JSONResponse
@@ -95,6 +95,33 @@ def latlon_to_grid(latitude: float, longitude: float) -> tuple[int, int]:
 	row = round((maximum - y) / (maximum - minimum) * 315)
 	column = round((x - minimum) / (maximum - minimum) * 331)
 	return int(max(0, min(315, row))), int(max(0, min(331, column)))
+
+
+def grid_to_latlon(row: int, column: int) -> tuple[float, float]:
+	"""Convert a 316 x 332 EPSG:3031 grid cell to WGS84 coordinates."""
+	minimum, maximum = -3_950_000.0, 3_950_000.0
+	radius, eccentricity = 6_378_137.0, 0.08181919
+	standard_parallel = math.radians(-71.0)
+	x = minimum + (column / 331) * (maximum - minimum)
+	y = maximum - (row / 315) * (maximum - minimum)
+	rho = math.hypot(x, y)
+	if rho == 0:
+		return -90.0, 0.0
+
+	def polar_t(phi: float) -> float:
+		return math.tan(math.pi / 4.0 - phi / 2.0) / (
+			(1.0 - eccentricity * math.sin(phi)) /
+			(1.0 + eccentricity * math.sin(phi))
+		) ** (eccentricity / 2.0)
+
+	m_c = math.cos(standard_parallel) / math.sqrt(1.0 - eccentricity**2 * math.sin(standard_parallel) ** 2)
+	t = rho * polar_t(standard_parallel) / (radius * m_c)
+	latitude = math.pi / 2.0 - 2.0 * math.atan(t)
+	for _ in range(5):
+		sin_latitude = math.sin(latitude)
+		latitude = math.pi / 2.0 - 2.0 * math.atan(t * ((1.0 - eccentricity * sin_latitude) / (1.0 + eccentricity * sin_latitude)) ** (eccentricity / 2.0))
+	longitude = math.atan2(x, -y)
+	return math.degrees(latitude), math.degrees(longitude)
 
 
 @app.middleware("http")
@@ -530,6 +557,39 @@ def get_forecast(day: int) -> dict:
 		"min_concentration": float(day_data.min()),
 		"high_risk_area_fraction": float((day_data > 0.8).sum() / day_data.size),
 	}
+
+
+@app.get("/api/v1/forecast/{day}/sea-ice-points")
+def get_significant_sea_ice_points(
+	day: int,
+	minimum_concentration: float = Query(0.8, ge=0.0, le=1.0),
+	max_points: int = Query(36, ge=1, le=100),
+) -> dict:
+	"""Return a sparse set of dense sea-ice cells for map markers, not the full raster."""
+	forecast_path = PROJECT_ROOT / "data" / "processed" / "ice_forecast_7day.npy"
+	if not forecast_path.exists():
+		if not HAS_ML:
+			raise HTTPException(status_code=500, detail="ML pipeline unavailable")
+		generate_7day_forecast()
+	forecast_grid = np.load(forecast_path)
+	if day < 1 or day > forecast_grid.shape[0]:
+		raise HTTPException(status_code=400, detail="Invalid forecast day")
+
+	day_data = forecast_grid[day - 1]
+	cells = np.argwhere(day_data >= minimum_concentration)
+	if len(cells) > max_points:
+		# Evenly sample the qualifying grid so markers cover the ice field instead of one cluster.
+		cells = cells[np.linspace(0, len(cells) - 1, max_points, dtype=int)]
+	points = []
+	for row, column in cells:
+		latitude, longitude = grid_to_latlon(int(row), int(column))
+		points.append({
+			"latitude": round(latitude, 5),
+			"longitude": round(longitude, 5),
+			"concentration": round(float(day_data[row, column]), 3),
+			"grid_position": [int(row), int(column)],
+		})
+	return {"day": day, "minimum_concentration": minimum_concentration, "points": points}
 
 
 @app.post("/api/v1/copilot/briefing")

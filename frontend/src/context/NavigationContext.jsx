@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import {
   computeRoutes,
   getActiveIcebergs,
+  getSignificantSeaIcePoints,
   checkHealth
 } from '../services/api';
 import { ANTARCTIC_PRESETS } from '../utils/geoUtils';
@@ -17,6 +18,7 @@ export function NavigationProvider({ children }) {
   const [routeData, setRouteData] = useState(null);
   const [selectedRouteId, setSelectedRouteId] = useState('safest');
   const [icebergs, setIcebergs] = useState([]);
+  const [seaIcePoints, setSeaIcePoints] = useState([]);
   const [isComputing, setIsComputing] = useState(false);
   const [copilotOpen, setCopilotOpen] = useState(false);
   const [apiStatus, setApiStatus] = useState({ connected: false, checking: true });
@@ -70,6 +72,15 @@ export function NavigationProvider({ children }) {
     return () => { mounted = false; };
   }, []);
 
+  // Only the backend's most significant dense sea-ice cells are mapped as points.
+  useEffect(() => {
+    let mounted = true;
+    getSignificantSeaIcePoints(forecastDay).then((points) => {
+      if (mounted) setSeaIcePoints(points);
+    });
+    return () => { mounted = false; };
+  }, [forecastDay]);
+
   // Compute routes
   const refreshRoutes = useCallback(async () => {
     setIsComputing(true);
@@ -113,6 +124,7 @@ export function NavigationProvider({ children }) {
         setSelectedRouteId,
         activeRoute,
         icebergs,
+        seaIcePoints,
         isComputing,
         refreshRoutes,
         copilotOpen,

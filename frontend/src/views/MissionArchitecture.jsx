@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
 
-export function MissionArchitecture() {
+export function MissionArchitecture({ embedded = false }) {
   const { setCurrentTab } = useNavigation();
 
   const capabilities = [
@@ -77,8 +77,8 @@ export function MissionArchitecture() {
   ];
 
   return (
-    <div className="w-full flex flex-col items-center py-8 select-none">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full space-y-8">
+    <div className={`w-full flex flex-col items-center ${embedded ? 'py-0' : 'py-8'} select-none`}>
+      <div className={`${embedded ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'} w-full space-y-8`}>
         
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-700/80 light:border-slate-200 pb-5">

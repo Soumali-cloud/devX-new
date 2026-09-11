@@ -1,276 +1,64 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import DeckGL from '@deck.gl/react';
 import { MapView } from '@deck.gl/core';
-import {
-  Play,
-  Pause,
-  RotateCcw,
-  Layers,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-  Shield,
-  Fuel,
-  Ship,
-  Bot,
-  AlertTriangle,
-  Info,
-  Calendar
-} from 'lucide-react';
+import { TileLayer } from '@deck.gl/geo-layers';
+import { BitmapLayer } from '@deck.gl/layers';
+import { AlertTriangle, Calendar, Pause, Play, SlidersHorizontal } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
 import { RouteSelector } from '../components/RouteSelector';
 import { createRouteLayers } from '../layers/RouteDeckLayer';
 import { createIcebergLayers } from '../layers/IcebergDeckLayer';
-import { createSeaIceGridLayers } from '../layers/SeaIceGridLayer';
+import { createSeaIcePointsLayer } from '../layers/SeaIcePointsLayer';
 import { MOCK_FORECAST_DAYS } from '../services/mockData';
 
-const INITIAL_VIEW_STATE = {
-  longitude: 45,
-  latitude: -72,
-  zoom: 2.6,
-  minZoom: 1.5,
-  maxZoom: 9,
-  pitch: 25,
-  bearing: 0,
-};
+const INITIAL_VIEW_STATE = { longitude: 20, latitude: -70, zoom: 1.65, minZoom: 1.15, maxZoom: 9, pitch: 0, bearing: 0 };
+
+function createAntarcticBaseMapLayer() {
+  return new TileLayer({ id: 'antarctic-geographic-basemap', data: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', minZoom: 0, maxZoom: 19, tileSize: 256, pickable: false, renderSubLayers: (props) => {
+    const { boundingBox } = props.tile;
+    return new BitmapLayer(props, { data: null, image: props.data, bounds: [boundingBox[0][0], boundingBox[0][1], boundingBox[1][0], boundingBox[1][1]] });
+  }});
+}
+
+function RouteEvaluationPanel({ routes, selectedRouteId, setSelectedRouteId }) {
+  if (!routes?.length) return null;
+  return <div className="absolute left-5 top-28 z-30 w-56 rounded-2xl border border-slate-border/80 bg-ocean-navy/90 p-2.5 opacity-100 shadow-xl backdrop-blur-md">
+    <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-200"><span>Evaluated Route Trajectories</span><span className="text-[10px] font-normal text-slate-400">Select to highlight</span></div>
+    <div className="space-y-2">{routes.map((route) => {
+      const routeStyle = route.id === 'fuel_optimal' ? { text: 'text-route-fuel', border: 'border-route-fuel/60', selected: 'bg-route-fuel/10 ring-route-fuel/40' } : route.id === 'shortest' ? { text: 'text-route-short', border: 'border-route-short/60', selected: 'bg-route-short/10 ring-route-short/40' } : { text: 'text-route-safe', border: 'border-route-safe/60', selected: 'bg-route-safe/10 ring-route-safe/40' };
+      const selected = route.id === selectedRouteId;
+      return <button key={route.id} onClick={() => setSelectedRouteId(route.id)} className={`w-full rounded-xl border p-2 text-left transition-all ${selected ? `${routeStyle.border} ${routeStyle.selected} ring-2` : 'border-slate-border bg-midnight/70 hover:border-slate-500'}`}><span className={`block text-[13px] font-bold ${routeStyle.text}`}>{route.name}</span><span className="mt-1 block font-mono text-[10px] text-slate-200">{route.distance_nm || (route.distance_km * 0.54).toFixed(0)} NM · {route.estimated_fuel_tons} MT</span><span className="block font-mono text-[10px] text-slate-300">Ice risk {(route.ice_risk_score * 100).toFixed(0)}%</span></button>;
+    })}</div>
+  </div>;
+}
+
+function ForecastHorizonPanel({ forecastDay, setForecastDay, isPlaying, setIsPlaying }) {
+  return <div className="space-y-2 rounded-2xl border border-slate-border/70 bg-ocean-navy/80 p-3 shadow-xl backdrop-blur-md select-none">
+    <div className="flex items-center gap-2 font-mono text-xs font-semibold text-slate-200"><button onClick={() => setIsPlaying(!isPlaying)} className="rounded-lg bg-ice-cyan p-1.5 font-bold text-midnight transition-colors hover:bg-sky-400 btn-glow-cyan" title={isPlaying ? 'Pause timeline' : 'Play timeline'}>{isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}</button><Calendar className="h-3.5 w-3.5 text-ice-cyan" /><span>Forecast Horizon:</span><span className="font-bold text-ice-cyan">T+{forecastDay} (Day {forecastDay})</span></div>
+    <div className="flex gap-3 font-mono text-[11px] text-slate-400"><span>Mean Ice: {(MOCK_FORECAST_DAYS[forecastDay - 1]?.mean_ice * 100).toFixed(0)}%</span><span>Wind: {MOCK_FORECAST_DAYS[forecastDay - 1]?.wind_kts} kts</span></div>
+    <div className="grid grid-cols-7 gap-1.5">{MOCK_FORECAST_DAYS.map((day) => { const isSelected = forecastDay === day.day; return <button key={day.day} onClick={() => { setIsPlaying(false); setForecastDay(day.day); }} className={`rounded-lg border px-1 py-1 text-center font-mono text-[11px] transition-all ${isSelected ? 'scale-105 border-ice-cyan bg-ice-cyan font-bold text-midnight shadow-glow-cyan/40 btn-glow-cyan' : 'border-slate-border bg-midnight/60 text-slate-300 hover:border-ice-cyan/60 btn-glow-subtle'}`}><span className="block font-bold">T+{day.day}</span><span className="block text-[9px] opacity-80">{day.temp_c}°C</span></button>; })}</div>
+  </div>;
+}
 
 export function AntarcticMap({ compact = false }) {
-  const {
-    forecastDay,
-    setForecastDay,
-    routeData,
-    selectedRouteId,
-    startPoint,
-    goalPoint,
-    icebergs,
-    safetyRadiusNM,
-    activeRoute
-  } = useNavigation();
-
+  const { forecastDay, setForecastDay, routeData, selectedRouteId, setSelectedRouteId, startPoint, goalPoint, icebergs, seaIcePoints, safetyRadiusNM } = useNavigation();
   const [viewState, setViewState] = useState(INITIAL_VIEW_STATE);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [showSeaIce, setShowSeaIce] = useState(true);
   const [showIcebergs, setShowIcebergs] = useState(true);
   const [showRoutes, setShowRoutes] = useState(true);
+  const [showRouteConfig, setShowRouteConfig] = useState(false);
+  const [showForecastHorizon, setShowForecastHorizon] = useState(false);
   const [hoverInfo, setHoverInfo] = useState(null);
-
-  // 7-day timeline auto-playback
-  useEffect(() => {
-    let interval = null;
-    if (isPlaying) {
-      interval = setInterval(() => {
-        setForecastDay(prev => (prev >= 7 ? 1 : prev + 1));
-      }, 2000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isPlaying, setForecastDay]);
-
-  // Build deck.gl layers
-  const layers = [
-    showSeaIce && createSeaIceGridLayers({ forecastDay }),
-    showIcebergs && createIcebergLayers({ icebergs, safetyRadiusNM }),
-    showRoutes && createRouteLayers({
-      routes: routeData?.routes || [],
-      selectedRouteId,
-      startPoint,
-      goalPoint
-    })
-  ].filter(Boolean);
-
-  const resetView = () => {
-    setViewState(INITIAL_VIEW_STATE);
-  };
-
-  const zoomIn = () => {
-    setViewState(prev => ({ ...prev, zoom: Math.min(prev.zoom + 0.5, 9) }));
-  };
-
-  const zoomOut = () => {
-    setViewState(prev => ({ ...prev, zoom: Math.max(prev.zoom - 0.5, 1.5) }));
-  };
-
-  return (
-    <div className={`relative w-full ${compact ? 'h-full min-h-[520px]' : 'h-[calc(100vh-4rem)]'} overflow-hidden bg-midnight select-none`}>
-      
-      {/* Deck.gl Geospatial Canvas */}
-      <div className="absolute inset-0 w-full h-full">
-        <DeckGL
-          views={new MapView({ id: 'polar-stereographic-view', controller: true })}
-          viewState={viewState}
-          onViewStateChange={({ viewState: nextState }) => setViewState(nextState)}
-          layers={layers}
-          getCursor={({ isHovering }) => (isHovering ? 'pointer' : 'crosshair')}
-          onHover={info => setHoverInfo(info.object ? info : null)}
-        />
-      </div>
-
-      {/* Hover Tooltip */}
-      {hoverInfo && hoverInfo.object && (
-        <div
-          className="absolute z-50 pointer-events-none p-3 rounded-xl bg-ocean-navy/95 text-white border border-slate-border text-xs font-mono shadow-2xl backdrop-blur-md"
-          style={{ left: hoverInfo.x + 12, top: hoverInfo.y + 12 }}
-        >
-          {hoverInfo.object.threat_level ? (
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5 font-bold text-iceberg-red">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                <span>{hoverInfo.object.name}</span>
-              </div>
-              <div>Threat: {hoverInfo.object.threat_level}</div>
-              <div>Drift: {hoverInfo.object.drift_speed_knots} kts @ {hoverInfo.object.drift_heading_deg}°</div>
-              <div>Area: {hoverInfo.object.area_sq_km} sq km</div>
-              <div>Thickness: {hoverInfo.object.thickness_m} m</div>
-            </div>
-          ) : hoverInfo.object.concentration !== undefined ? (
-            <div className="space-y-1">
-              <div className="font-bold text-ice-cyan">Sea-Ice Tensor Grid Cell</div>
-              <div>Concentration: {(hoverInfo.object.concentration * 100).toFixed(0)}%</div>
-              <div>Lat/Lon: {hoverInfo.object.position?.[1]?.toFixed(2)}°S, {hoverInfo.object.position?.[0]?.toFixed(2)}°E</div>
-            </div>
-          ) : hoverInfo.object.name ? (
-            <div className="space-y-1">
-              <div className="font-bold text-route-safe">Route Trajectory: {hoverInfo.object.name}</div>
-              <div>Total Distance: {hoverInfo.object.distance_km} km</div>
-              <div>Est Fuel: {hoverInfo.object.fuel_tons} MT</div>
-              <div>Mean Risk: {(hoverInfo.object.ice_risk * 100).toFixed(1)}%</div>
-            </div>
-          ) : null}
-        </div>
-      )}
-
-      {/* Top Left: Polar Mission Status HUD */}
-      <div className="absolute top-4 left-4 z-20 flex flex-col gap-2 max-w-sm">
-        <div className="p-3 rounded-2xl bg-ocean-navy/90 light:bg-white/95 backdrop-blur-md border border-slate-border light:border-slate-light-border shadow-xl text-xs space-y-1.5">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-ice-cyan light:text-research-blue font-bold">
-              EPSG:3031 Polar Stereographic
-            </span>
-            <span className="w-2 h-2 rounded-full bg-route-safe animate-pulse" />
-          </div>
-          <div className="text-sm font-bold text-white light:text-ocean-navy flex items-center justify-between">
-            <span>Antarctic Southern Ocean Basin</span>
-            <span className="text-xs text-slate-400 font-mono">Zoom: {viewState.zoom.toFixed(1)}x</span>
-          </div>
-          <div className="flex items-center gap-3 text-[11px] font-mono text-slate-300 light:text-slate-600 pt-1 border-t border-slate-border/50">
-            <span>Active Bergs: <strong className="text-iceberg-red">{icebergs.length}</strong></span>
-            <span>Forecast Day: <strong className="text-ice-cyan">T+{forecastDay}</strong></span>
-          </div>
-        </div>
-      </div>
-
-      {/* Top Right: Route Selector Controls HUD */}
-      <div className="absolute top-4 right-4 z-20 w-80 sm:w-96 max-h-[calc(100vh-14rem)] overflow-y-auto">
-        <RouteSelector />
-      </div>
-
-      {/* Bottom Center: 7-Day Sea Ice Timeline Scrubbing Bar */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 w-full max-w-2xl px-4">
-        <div className="p-3 rounded-2xl bg-ocean-navy/90 light:bg-white/95 backdrop-blur-md border border-slate-border light:border-slate-light-border shadow-2xl space-y-2 select-none">
-          
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsPlaying(!isPlaying)}
-                className="p-1.5 rounded-lg bg-ice-cyan text-midnight hover:bg-sky-400 font-bold transition-colors btn-glow-cyan"
-                title={isPlaying ? 'Pause timeline' : 'Play timeline'}
-              >
-                {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-              </button>
-              <div className="flex items-center gap-1 text-slate-200 light:text-slate-800 font-semibold font-mono text-xs">
-                <Calendar className="w-3.5 h-3.5 text-ice-cyan light:text-research-blue" />
-                <span>Forecast Horizon:</span>
-                <span className="text-ice-cyan font-bold">T+{forecastDay} (Day {forecastDay})</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400">
-              <span>Mean Ice: {(MOCK_FORECAST_DAYS[forecastDay - 1]?.mean_ice * 100).toFixed(0)}%</span>
-              <span>Katabatic Wind: {MOCK_FORECAST_DAYS[forecastDay - 1]?.wind_kts} kts</span>
-            </div>
-          </div>
-
-          {/* Scrubbing Step Buttons */}
-          <div className="grid grid-cols-7 gap-1.5">
-            {MOCK_FORECAST_DAYS.map(d => {
-              const isSelected = forecastDay === d.day;
-              return (
-                <button
-                  key={d.day}
-                  onClick={() => {
-                    setIsPlaying(false);
-                    setForecastDay(d.day);
-                  }}
-                  className={`py-1 px-1 rounded-lg text-center font-mono text-[11px] transition-all border ${
-                    isSelected
-                      ? 'bg-ice-cyan text-midnight font-bold border-ice-cyan shadow-glow-cyan/40 scale-105 btn-glow-cyan'
-                      : 'bg-midnight/60 light:bg-slate-100 text-slate-300 light:text-slate-700 border-slate-border light:border-slate-light-border hover:border-ice-cyan/60 btn-glow-subtle'
-                  }`}
-                >
-                  <span className="block font-bold">T+{d.day}</span>
-                  <span className="block text-[9px] opacity-80">{d.temp_c}°C</span>
-                </button>
-              );
-            })}
-          </div>
-
-        </div>
-      </div>
-
-      {/* Floating Canvas Utility Buttons (Left Side) */}
-      <div className="absolute bottom-6 left-4 z-20 flex flex-col gap-2">
-        <button
-          onClick={zoomIn}
-          title="Zoom In"
-          className="p-2 rounded-xl bg-ocean-navy/90 light:bg-white border border-slate-border light:border-slate-light-border text-white light:text-ocean-navy hover:border-ice-cyan shadow-lg btn-glow"
-        >
-          <ZoomIn className="w-4 h-4" />
-        </button>
-        <button
-          onClick={zoomOut}
-          title="Zoom Out"
-          className="p-2 rounded-xl bg-ocean-navy/90 light:bg-white border border-slate-border light:border-slate-light-border text-white light:text-ocean-navy hover:border-ice-cyan shadow-lg btn-glow"
-        >
-          <ZoomOut className="w-4 h-4" />
-        </button>
-        <button
-          onClick={resetView}
-          title="Reset Antarctic Perspective"
-          className="p-2 rounded-xl bg-ocean-navy/90 light:bg-white border border-slate-border light:border-slate-light-border text-white light:text-ocean-navy hover:border-ice-cyan shadow-lg btn-glow"
-        >
-          <RotateCcw className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Layer Visibility Toggles (Bottom Right) */}
-      <div className="absolute bottom-6 right-4 z-20 flex items-center gap-1.5 p-1.5 rounded-xl bg-ocean-navy/90 light:bg-white border border-slate-border light:border-slate-light-border shadow-xl text-xs font-mono">
-        <button
-          onClick={() => setShowSeaIce(!showSeaIce)}
-          className={`px-2 py-1 rounded-lg transition-all btn-glow-subtle ${
-            showSeaIce ? 'bg-ice-cyan/20 text-ice-cyan border border-ice-cyan/40' : 'text-slate-500'
-          }`}
-        >
-          Sea-Ice
-        </button>
-        <button
-          onClick={() => setShowIcebergs(!showIcebergs)}
-          className={`px-2 py-1 rounded-lg transition-all btn-glow-subtle ${
-            showIcebergs ? 'bg-iceberg-red/20 text-iceberg-red border border-iceberg-red/40' : 'text-slate-500'
-          }`}
-        >
-          Icebergs
-        </button>
-        <button
-          onClick={() => setShowRoutes(!showRoutes)}
-          className={`px-2 py-1 rounded-lg transition-all btn-glow-subtle ${
-            showRoutes ? 'bg-route-safe/20 text-route-safe border border-route-safe/40' : 'text-slate-500'
-          }`}
-        >
-          Routes
-        </button>
-      </div>
-
-    </div>
-  );
+  useEffect(() => { if (!isPlaying) return undefined; const interval = setInterval(() => setForecastDay((day) => (day >= 7 ? 1 : day + 1)), 2000); return () => clearInterval(interval); }, [isPlaying, setForecastDay]);
+  const layers = [createAntarcticBaseMapLayer(), createSeaIcePointsLayer({ points: seaIcePoints }), showIcebergs && createIcebergLayers({ icebergs, safetyRadiusNM }), showRoutes && createRouteLayers({ routes: routeData?.routes || [], selectedRouteId, startPoint, goalPoint })].filter(Boolean);
+  return <div className={`relative w-full overflow-hidden bg-midnight select-none ${compact ? 'h-full min-h-[520px]' : 'h-[calc(100vh-4rem)]'}`}>
+    <div className="absolute inset-0 h-full w-full"><DeckGL views={new MapView({ id: 'polar-stereographic-view' })} viewState={viewState} onViewStateChange={({ viewState: nextState }) => setViewState({ ...nextState, longitude: INITIAL_VIEW_STATE.longitude, latitude: Math.max(-82, Math.min(-55, nextState.latitude)), bearing: 0, pitch: 0 })} controller={{ dragPan: true, dragRotate: false, touchRotate: false, scrollZoom: false, touchZoom: false, doubleClickZoom: false, keyboard: false }} layers={layers} getCursor={({ isHovering }) => (isHovering ? 'pointer' : 'crosshair')} onHover={(info) => setHoverInfo(info.object ? info : null)} /></div>
+    {hoverInfo?.object && <div className="pointer-events-none absolute z-50 rounded-xl border border-slate-border bg-ocean-navy/95 p-3 font-mono text-xs text-white shadow-2xl backdrop-blur-md" style={{ left: hoverInfo.x + 12, top: hoverInfo.y + 12 }}>{hoverInfo.object.threat_level ? <div className="space-y-1"><div className="flex items-center gap-1.5 font-bold text-iceberg-red"><AlertTriangle className="h-3.5 w-3.5" /><span>{hoverInfo.object.name}</span></div><div>Threat: {hoverInfo.object.threat_level}</div><div>Drift: {hoverInfo.object.drift_speed_knots} kts @ {hoverInfo.object.drift_heading_deg}°</div><div>Area: {hoverInfo.object.area_sq_km} sq km</div><div>Thickness: {hoverInfo.object.thickness_m} m</div></div> : hoverInfo.object.concentration !== undefined ? <div className="space-y-1"><div className="font-bold text-ice-cyan">Sea-Ice Tensor Grid Cell</div><div>Concentration: {(hoverInfo.object.concentration * 100).toFixed(0)}%</div><div>Lat/Lon: {hoverInfo.object.position?.[1]?.toFixed(2)}°S, {hoverInfo.object.position?.[0]?.toFixed(2)}°E</div></div> : hoverInfo.object.name ? <div className="space-y-1"><div className="font-bold text-route-safe">Route Trajectory: {hoverInfo.object.name}</div><div>Total Distance: {hoverInfo.object.distance_km} km</div><div>Est Fuel: {hoverInfo.object.fuel_tons} MT</div><div>Mean Risk: {(hoverInfo.object.ice_risk * 100).toFixed(1)}%</div></div> : null}</div>}
+    <RouteEvaluationPanel routes={routeData?.routes} selectedRouteId={selectedRouteId} setSelectedRouteId={setSelectedRouteId} />
+    <div className="absolute right-5 top-28 z-30 flex flex-col items-end gap-2"><button onClick={() => { setShowRouteConfig((visible) => !visible); setShowForecastHorizon(false); }} className="flex items-center gap-2 rounded-xl border border-ice-cyan/40 bg-ocean-navy/90 px-3 py-2 text-xs font-semibold text-ice-cyan shadow-xl backdrop-blur-md hover:bg-ocean-navy" aria-expanded={showRouteConfig}><SlidersHorizontal className="h-4 w-4" />{showRouteConfig ? 'Hide route filters' : 'Configure routes'}</button><button onClick={() => { setShowForecastHorizon((visible) => !visible); setShowRouteConfig(false); }} className="flex items-center gap-2 rounded-xl border border-ice-cyan/40 bg-ocean-navy/90 px-3 py-2 text-xs font-semibold text-ice-cyan shadow-xl backdrop-blur-md hover:bg-ocean-navy" aria-expanded={showForecastHorizon}><Calendar className="h-4 w-4" />{showForecastHorizon ? 'Hide forecast horizon' : 'Forecast horizon'}</button></div>
+    <div className={`absolute right-5 top-40 z-30 max-h-[calc(100%-12rem)] w-[calc(100%-2.5rem)] max-w-md overflow-y-auto rounded-2xl origin-top-right shadow-2xl transition-all duration-300 ease-out ${showRouteConfig ? 'translate-y-0 opacity-100' : '-translate-y-5 pointer-events-none opacity-0'}`} aria-hidden={!showRouteConfig}><RouteSelector onClose={() => setShowRouteConfig(false)} /></div>
+    <div className={`absolute right-5 top-[12.25rem] z-30 w-[calc(100%-2.5rem)] max-w-md origin-top-right transition-all duration-300 ease-out ${showForecastHorizon ? 'translate-y-0 opacity-100' : '-translate-y-5 pointer-events-none opacity-0'}`} aria-hidden={!showForecastHorizon}><ForecastHorizonPanel forecastDay={forecastDay} setForecastDay={setForecastDay} isPlaying={isPlaying} setIsPlaying={setIsPlaying} /></div>
+    <div className="absolute bottom-6 right-4 z-20 flex items-center gap-1.5 rounded-xl border border-slate-border bg-ocean-navy/90 p-1.5 font-mono text-xs shadow-xl"><button onClick={() => setShowIcebergs(!showIcebergs)} className={`rounded-lg px-2 py-1 transition-all btn-glow-subtle ${showIcebergs ? 'border border-iceberg-red/40 bg-iceberg-red/20 text-iceberg-red' : 'text-slate-500'}`}>Icebergs</button><button onClick={() => setShowRoutes(!showRoutes)} className={`rounded-lg px-2 py-1 transition-all btn-glow-subtle ${showRoutes ? 'border border-route-safe/40 bg-route-safe/20 text-route-safe' : 'text-slate-500'}`}>Routes</button></div>
+    <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="absolute bottom-2 left-3 z-20 rounded bg-midnight/75 px-1.5 py-0.5 text-[9px] text-slate-300 hover:text-white">© OpenStreetMap contributors</a>
+  </div>;
 }

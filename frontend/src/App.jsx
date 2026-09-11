@@ -6,8 +6,6 @@ import { LandingPage } from './views/LandingPage';
 import { AntarcticMap } from './views/AntarcticMap';
 import { Dashboard } from './views/Dashboard';
 import { Visualizations } from './views/Visualizations';
-import { MissionArchitecture } from './views/MissionArchitecture';
-import { PolarNews } from './views/PolarNews';
 import { Settings } from './views/Settings';
 import { SeaLevelImpact } from './views/SeaLevelImpact';
 import { Shield } from 'lucide-react';
@@ -24,8 +22,6 @@ function ViewRouter() {
       {currentTab === 'map' && <AntarcticMap />}
       {currentTab === 'dashboard' && <Dashboard />}
       {currentTab === 'visualizations' && <Visualizations />}
-      {currentTab === 'architecture' && <MissionArchitecture />}
-      {currentTab === 'news' && <PolarNews />}
       {currentTab === 'settings' && <Settings />}
       {currentTab === 'sea-level-impact' && <SeaLevelImpact />}
     </div>

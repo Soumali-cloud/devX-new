@@ -5,15 +5,12 @@ import {
   Navigation,
   RefreshCw,
   ShieldAlert,
-  Fuel,
-  Gauge,
-  CheckCircle2,
-  ChevronDown
+  X
 } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
 import { ANTARCTIC_PRESETS, POLAR_ICE_CLASSES } from '../utils/geoUtils';
 
-export function RouteSelector() {
+export function RouteSelector({ onClose }) {
   const {
     startPoint,
     setStartPoint,
@@ -21,9 +18,6 @@ export function RouteSelector() {
     setGoalPoint,
     vesselIceClass,
     setVesselIceClass,
-    routeData,
-    selectedRouteId,
-    setSelectedRouteId,
     isComputing,
     refreshRoutes
   } = useNavigation();
@@ -39,14 +33,17 @@ export function RouteSelector() {
             Vessel Route Configuration
           </span>
         </div>
-        <button
-          onClick={refreshRoutes}
-          disabled={isComputing}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-research-blue/40 light:bg-slate-100 hover:bg-research-blue/60 text-ice-cyan light:text-research-blue border border-ice-cyan/30 transition-all duration-200 disabled:opacity-50 btn-glow"
-        >
-          <RefreshCw className={`w-3 h-3 ${isComputing ? 'animate-spin' : ''}`} />
-          <span>{isComputing ? 'Computing...' : 'Recalculate'}</span>
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={refreshRoutes}
+            disabled={isComputing}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-research-blue/40 light:bg-slate-100 hover:bg-research-blue/60 text-ice-cyan light:text-research-blue border border-ice-cyan/30 transition-all duration-200 disabled:opacity-50 btn-glow"
+          >
+            <RefreshCw className={`w-3 h-3 ${isComputing ? 'animate-spin' : ''}`} />
+            <span>{isComputing ? 'Computing...' : 'Recalculate'}</span>
+          </button>
+          {onClose && <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white" aria-label="Hide route configuration" title="Hide route configuration"><X className="h-3.5 w-3.5" /></button>}
+        </div>
       </div>
 
       {/* Polar Class Picker */}
@@ -71,6 +68,7 @@ export function RouteSelector() {
             </button>
           ))}
         </div>
+        <p className="text-[10px] leading-relaxed text-slate-400">Choose a vessel class, origin and destination; route options update automatically.</p>
       </div>
 
       {/* Start / Goal Coordinates */}
@@ -123,60 +121,6 @@ export function RouteSelector() {
         </div>
 
       </div>
-
-      {/* Multi-Route Options Switcher */}
-      {routeData?.routes && (
-        <div className="space-y-2 pt-2 border-t border-slate-border/60 light:border-slate-light-border">
-          <div className="text-slate-300 light:text-slate-600 font-semibold flex items-center justify-between">
-            <span>Evaluated Route Trajectories:</span>
-            <span className="text-[10px] text-slate-400">Select to highlight</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            {routeData.routes.map(r => {
-              const isSelected = selectedRouteId === r.id;
-              const colorMap = {
-                safest: { border: 'border-route-safe', text: 'text-route-safe', bg: 'bg-route-safe/10' },
-                fuel_optimal: { border: 'border-route-fuel', text: 'text-route-fuel', bg: 'bg-route-fuel/10' },
-                shortest: { border: 'border-route-short', text: 'text-route-short', bg: 'bg-route-short/10' }
-              };
-              const col = colorMap[r.id] || colorMap.safest;
-
-              return (
-                <button
-                  key={r.id}
-                  onClick={() => setSelectedRouteId(r.id)}
-                  className={`p-2.5 rounded-xl border text-left transition-all ${
-                    isSelected
-                      ? `${col.border} ${col.bg} ring-2 ring-ice-cyan/40 btn-glow`
-                      : 'border-slate-border light:border-slate-light-border bg-midnight/40 light:bg-slate-50 hover:border-slate-400 btn-glow-subtle'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`font-bold ${col.text}`}>{r.name}</span>
-                    {isSelected && <CheckCircle2 className={`w-3.5 h-3.5 ${col.text}`} />}
-                  </div>
-                  
-                  <div className="space-y-0.5 text-[11px] font-mono text-slate-300 light:text-slate-600">
-                    <div className="flex items-center justify-between">
-                      <span>Dist:</span>
-                      <span className="font-bold">{r.distance_nm || (r.distance_km * 0.54).toFixed(0)} NM</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Fuel:</span>
-                      <span className="font-bold">{r.estimated_fuel_tons} MT</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Ice Risk:</span>
-                      <span className="font-bold">{(r.ice_risk_score * 100).toFixed(0)}%</span>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
     </div>
   );

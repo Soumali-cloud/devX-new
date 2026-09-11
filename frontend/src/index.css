@@ -33,6 +33,25 @@ body {
   transition: background-color 0.25s ease, color 0.25s ease;
 }
 
+@keyframes polarGlobeRotate {
+  from { transform: rotate(0deg) scale(1.04); }
+  to { transform: rotate(360deg) scale(1.04); }
+}
+
+.polar-globe {
+  background-position: center;
+  background-size: cover;
+  animation: polarGlobeRotate 55s linear infinite;
+}
+
+.polar-globe-grid {
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.16) 1px, transparent 1px);
+  background-size: 20% 20%;
+  mix-blend-mode: screen;
+}
+
 /* Custom Polar Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
