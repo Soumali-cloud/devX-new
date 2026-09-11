@@ -1,0 +1,207 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root, .light {
+    --bg-main: #FFFFFF;
+    --bg-surface: #F8FAFC;
+    --bg-card: #F0F9FF;
+    --text-main: #0F172A;
+    --text-muted: #475569;
+    --border-color: #CBD5E1;
+    --accent-cyan: #38BDF8;
+    --primary-blue: #1E3A8A;
+  }
+
+  .dark {
+    --bg-main: #020617;
+    --bg-surface: #0F172A;
+    --bg-card: #0B1329;
+    --text-main: #FFFFFF;
+    --text-muted: #94A3B8;
+    --border-color: #334155;
+    --accent-cyan: #38BDF8;
+    --primary-blue: #1E3A8A;
+  }
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Custom Polar Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.25);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.5);
+}
+
+.deck-tooltip {
+  background: #0F172A !important;
+  color: #FFFFFF !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 12px !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  border: 1px solid #334155 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+  pointer-events: none !important;
+  z-index: 99999 !important;
+}
+
+.light .deck-tooltip {
+  background: #FFFFFF !important;
+  color: #0F172A !important;
+  border: 1px solid #CBD5E1 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12) !important;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(56, 189, 248, 0.65);
+  }
+}
+
+.pulse-glow {
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+/* Dynamic Polar Button Ambient Glow System */
+@keyframes dynamicAuraPulse {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scale(0.98);
+    filter: blur(10px);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.04);
+    filter: blur(14px);
+  }
+}
+
+@keyframes dynamicAuraShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.btn-glow {
+  position: relative;
+  isolation: isolate;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-glow::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.45) 0%, rgba(30, 58, 138, 0.2) 60%, transparent 80%);
+  opacity: 0.3;
+  z-index: -1;
+  filter: blur(8px);
+  transition: opacity 0.3s ease, transform 0.3s ease, filter 0.3s ease;
+  pointer-events: none;
+  animation: dynamicAuraPulse 3.5s infinite ease-in-out;
+}
+
+.btn-glow:hover::before {
+  opacity: 1;
+  transform: scale(1.06);
+  filter: blur(12px);
+  animation-play-state: paused;
+}
+
+.light .btn-glow::before {
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.5) 0%, rgba(14, 165, 233, 0.2) 60%, transparent 85%);
+  filter: blur(10px);
+  opacity: 0.35;
+}
+
+/* Radiant dynamic glow for primary action buttons */
+.btn-glow-cyan {
+  position: relative;
+  isolation: isolate;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-glow-cyan::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.7), rgba(52, 211, 153, 0.45), rgba(14, 165, 233, 0.6));
+  background-size: 200% 200%;
+  opacity: 0.55;
+  z-index: -1;
+  filter: blur(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease, filter 0.3s ease;
+  pointer-events: none;
+  animation: dynamicAuraPulse 2.8s infinite ease-in-out, dynamicAuraShift 6s infinite linear;
+}
+
+.btn-glow-cyan:hover::before {
+  opacity: 1;
+  transform: scale(1.08);
+  filter: blur(16px);
+}
+
+.light .btn-glow-cyan::before {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.65), rgba(34, 197, 94, 0.35), rgba(2, 132, 199, 0.5));
+  opacity: 0.5;
+  filter: blur(12px);
+}
+
+/* Subtle glow variant for compact toolbars */
+.btn-glow-subtle {
+  position: relative;
+  isolation: isolate;
+  transition: all 0.2s ease;
+}
+
+.btn-glow-subtle::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: rgba(56, 189, 248, 0.35);
+  opacity: 0;
+  z-index: -1;
+  filter: blur(6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+}
+
+.btn-glow-subtle:hover::before,
+.btn-glow-subtle:focus-visible::before {
+  opacity: 0.85;
+  transform: scale(1.05);
+}
+
+

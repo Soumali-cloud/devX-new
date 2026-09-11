@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Node
+node_modules/
+dist/
+
+# Secrets
+.env
+
+# Large scientific data and model weights
+data/raw/**
+data/processed/*.npy
+*.nc
+*.grib
+*.grb
+*.pt
+*.pth
+
+# Local tooling
+.vscode/*.log
+
+*.log

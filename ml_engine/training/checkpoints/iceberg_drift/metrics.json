@@ -1,0 +1,29 @@
+{
+  "rows_used": 515160,
+  "date_range": [
+    "1978-07-24",
+    "2021-01-11"
+  ],
+  "validation_mae_degrees": [
+    0.06485503166913986,
+    1.2327572107315063
+  ],
+  "features": [
+    "latitude",
+    "longitude",
+    "previous_latitude",
+    "previous_longitude",
+    "delta_latitude",
+    "delta_longitude_wrapped",
+    "time_difference",
+    "speed",
+    "lat_velocity",
+    "lon_velocity",
+    "movement_distance_deg",
+    "movement_rate_deg_per_day",
+    "year",
+    "month",
+    "day_of_year"
+  ],
+  "source": "data/raw/icebergs/PolarNavX_XGBoost_Training.csv"
+}
