@@ -1,0 +1,17 @@
+# Keep source packages in the Docker build context. Do not use a blanket `*`
+# rule here: the backend image needs backend/, ml_engine/, routing/, and
+# data_pipeline/ from the repository root.
+.git
+.github
+.venv
+.pytest_cache
+**/__pycache__
+**/*.py[cod]
+frontend/node_modules
+frontend/dist
+.env
+*.log
+notebooks
+test_data
+data/raw
+data/processed/*.npy
