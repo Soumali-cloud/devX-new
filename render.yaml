@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: himyatra-backend
+    runtime: docker
+    # This repository is a monorepo. Both paths are intentionally rooted at
+    # the repository so Docker can copy the API and its sibling ML packages.
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health

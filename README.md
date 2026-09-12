@@ -30,6 +30,10 @@ Directory to `backend`: the API imports `ml_engine`, `routing`, and
 Docker build context. Generated `data/` artifacts are created during the image
 build, so they do not need to be committed to the repository.
 
+The repository also includes `render.yaml`, which pins these settings for a
+Render Blueprint deployment. In Render, choose **New > Blueprint** and select
+this repository, rather than creating a backend-only Docker service.
+
 The routing engine remains deterministic; the briefing generator provides explanations only.
 SQLite is the built-in route-audit store.  The generated offline fixtures are demonstrations,
 not real environmental observations or operational forecasts.
