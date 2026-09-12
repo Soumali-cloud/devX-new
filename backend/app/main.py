@@ -10,6 +10,13 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Literal, Optional
 
+# Ensure sibling application packages are importable before importing them.
+# This also makes ``python -m uvicorn backend.app.main:app`` work from a
+# repository checkout and inside the root-level container image.
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -34,10 +41,6 @@ from ml_engine.models.iceberg_melt import (
     MeltParameters,
     simulate_iceberg,
 )
-
-# Add project root to path
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(PROJECT_ROOT))
 
 # Import inference pipeline
 try:

@@ -20,6 +20,15 @@ An AI/ML-enabled decision support platform capable of forecasting Antarctic sea 
 2. Generate the deterministic offline fixtures with `python data_pipeline/generate_missing_artifacts.py`.
 3. Start the API with `docker compose up --build`, or run `python -m uvicorn backend.app.main:app --reload`.
 
+### Render deployment
+
+Deploy the API as a Docker service from the repository root. Use the root
+`Dockerfile` (or `backend/Dockerfile` with the Docker context set to the
+repository root), and leave the Root Directory blank. Do not set the Root
+Directory to `backend`: the API imports `ml_engine`, `routing`, and
+`data_pipeline`, which are sibling directories and must be included in the
+Docker build context.
+
 The routing engine remains deterministic; the briefing generator provides explanations only.
 SQLite is the built-in route-audit store.  The generated offline fixtures are demonstrations,
 not real environmental observations or operational forecasts.

@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import DeckGL from '@deck.gl/react';
 import { MapView } from '@deck.gl/core';
 import { TileLayer } from '@deck.gl/geo-layers';
 import { BitmapLayer } from '@deck.gl/layers';
-import { AlertTriangle, Calendar, Pause, Play, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, Calendar, ChevronDown, MapPinned, Pause, Play, SlidersHorizontal } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
 import { RouteSelector } from '../components/RouteSelector';
 import { createRouteLayers } from '../layers/RouteDeckLayer';
@@ -79,10 +79,84 @@ function RouteOptionsPanel({ routes, selectedRouteId, setSelectedRouteId }) {
 }
 
 function RouteMetricsPanel({ routes, selectedRouteId, setSelectedRouteId }) {
+  const panelRef = useRef(null);
+  const dragRef = useRef(null);
+  const ignoreNextClickRef = useRef(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [position, setPosition] = useState({ x: 20, y: 112 });
+
+  const startDrag = (event) => {
+    if (event.button !== undefined && event.button !== 0) return;
+    const panel = panelRef.current;
+    const container = panel?.parentElement;
+    if (!panel || !container) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: position.x,
+      originY: position.y,
+      moved: false,
+      expandOnRelease: !isExpanded,
+    };
+    panel.setPointerCapture?.(event.pointerId);
+  };
+
+  const moveDrag = (event) => {
+    const drag = dragRef.current;
+    const panel = panelRef.current;
+    const container = panel?.parentElement;
+    if (!drag || drag.pointerId !== event.pointerId || !panel || !container) return;
+
+    const deltaX = event.clientX - drag.startX;
+    const deltaY = event.clientY - drag.startY;
+    if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) drag.moved = true;
+    const containerRect = container.getBoundingClientRect();
+    const panelRect = panel.getBoundingClientRect();
+    setPosition({
+      x: Math.max(0, Math.min(containerRect.width - panelRect.width, drag.originX + deltaX)),
+      y: Math.max(0, Math.min(containerRect.height - panelRect.height, drag.originY + deltaY)),
+    });
+  };
+
+  const endDrag = (event) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    panelRef.current?.releasePointerCapture?.(event.pointerId);
+    ignoreNextClickRef.current = drag.moved;
+    if (drag.expandOnRelease && !drag.moved) setIsExpanded(true);
+    dragRef.current = null;
+  };
+
   if (!routes?.length) return null;
 
-  return <div className="absolute left-5 top-28 z-30 w-56 rounded-2xl border border-slate-border/80 bg-ocean-navy/90 p-2.5 shadow-xl backdrop-blur-md">
-    <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-200"><span>Evaluated Route Trajectories</span><span className="text-[10px] font-normal text-slate-400">Select to highlight</span></div>
+  return <div
+    ref={panelRef}
+    className={`absolute z-30 touch-none ${isExpanded ? 'w-56' : 'w-auto'}`}
+    style={{ left: position.x, top: position.y }}
+    onPointerMove={moveDrag}
+    onPointerUp={endDrag}
+    onPointerCancel={endDrag}
+  >
+    {!isExpanded ? <button
+      type="button"
+      onPointerDown={startDrag}
+      onClick={() => {
+        // Keyboard activation does not emit pointer events.
+        if (!ignoreNextClickRef.current) setIsExpanded(true);
+        ignoreNextClickRef.current = false;
+      }}
+      className="flex h-11 w-11 items-center justify-center rounded-xl border border-ice-cyan/50 bg-ocean-navy/95 text-ice-cyan shadow-xl backdrop-blur-md transition hover:bg-ocean-navy focus:outline-none focus-visible:ring-2 focus-visible:ring-ice-cyan"
+      aria-label="Show evaluated route trajectories"
+      title="Drag to move · Click to show route trajectories"
+    ><MapPinned className="h-5 w-5" /></button> : <div className="rounded-2xl border border-slate-border/80 bg-ocean-navy/90 p-2.5 shadow-xl backdrop-blur-md">
+    <div className="mb-2 flex items-center justify-between gap-2 text-xs font-semibold text-slate-200">
+      <button type="button" onPointerDown={startDrag} className="cursor-grab touch-none text-left active:cursor-grabbing" title="Drag to move"><span className="block">Evaluated Route<br />Trajectories</span></button>
+      <button type="button" onClick={() => setIsExpanded(false)} className="rounded-lg p-1 text-slate-400 transition hover:bg-white/10 hover:text-white" aria-label="Hide evaluated route trajectories" title="Hide route trajectories"><ChevronDown className="h-4 w-4" /></button>
+    </div>
     <div className="space-y-2">{routes.map((route) => {
       const style = route.id === 'fuel_optimal' ? { text: 'text-blue-400', border: '!border-blue-400/60', selected: 'bg-blue-500/10 ring-blue-400/40' } : route.id === 'shortest' ? { text: 'text-red-400', border: '!border-red-400/60', selected: 'bg-red-500/10 ring-red-400/40' } : { text: 'text-emerald-400', border: '!border-emerald-400/60', selected: 'bg-emerald-500/10 ring-emerald-400/40' };
       const distanceKm = Number(route.distance_km ?? route.distance);
@@ -97,7 +171,7 @@ function RouteMetricsPanel({ routes, selectedRouteId, setSelectedRouteId }) {
         <span className="block font-mono text-[10px] text-slate-300">Ice risk: {Number.isFinite(iceRisk) ? `${(iceRisk * 100).toFixed(1)}%` : '—'}{Number.isFinite(speed) ? ` · Min ${speed.toFixed(1)} kts` : ''}</span>
       </button>;
     })}</div>
-  </div>;
+  </div>}</div>;
 }
 
 function ForecastHorizonPanel({ forecastDay, setForecastDay, isPlaying, setIsPlaying }) {
