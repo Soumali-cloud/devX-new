@@ -7,3 +7,8 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /health
+    envVars:
+      # CORSMiddleware reads this as a JSON array. Add preview/custom frontend
+      # URLs here when those sites need to call the API from a browser.
+      - key: CORS_ORIGINS
+        value: '["https://himyatra.netlify.app"]'

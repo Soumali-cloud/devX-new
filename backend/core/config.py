@@ -16,7 +16,14 @@ class Settings(BaseSettings):
     JWT_SECRET: Optional[str] = None
     NASA_EARTHDATA_USER: Optional[str] = None
     NASA_EARTHDATA_PASS: Optional[str] = None
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    # Keep this allow-list explicit: authenticated browser requests must not be
+    # served with a wildcard origin. Override it per deployment with a JSON
+    # array in CORS_ORIGINS.
+    CORS_ORIGINS: List[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://himyatra.netlify.app",
+    ]
     API_KEYS: List[str] = []
 
     if SettingsConfigDict is not None:

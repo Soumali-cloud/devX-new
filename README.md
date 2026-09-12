@@ -34,6 +34,11 @@ The repository also includes `render.yaml`, which pins these settings for a
 Render Blueprint deployment. In Render, choose **New > Blueprint** and select
 this repository, rather than creating a backend-only Docker service.
 
+The deployed API allows browser requests from `https://himyatra.netlify.app`.
+For a different Netlify preview or custom frontend domain, set Render's
+`CORS_ORIGINS` environment variable to a JSON array of the allowed origins,
+then redeploy (for example, `["https://himyatra.netlify.app","https://example.com"]`).
+
 The routing engine remains deterministic; the briefing generator provides explanations only.
 SQLite is the built-in route-audit store.  The generated offline fixtures are demonstrations,
 not real environmental observations or operational forecasts.

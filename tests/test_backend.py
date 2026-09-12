@@ -19,6 +19,20 @@ def test_api_health():
     assert response.status_code == 200
 
 
+def test_cors_preflight_allows_production_frontend():
+    response = client.options(
+        "/api/v1/icebergs/melt-simulations",
+        headers={
+            "Origin": "https://himyatra.netlify.app",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type,x-api-key",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "https://himyatra.netlify.app"
+    assert "POST" in response.headers["access-control-allow-methods"]
+
+
 def test_iceberg_forecast_api():
     response = client.get("/api/v1/forecast/icebergs")
     assert response.status_code == 200
