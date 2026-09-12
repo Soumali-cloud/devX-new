@@ -27,7 +27,8 @@ Deploy the API as a Docker service from the repository root. Use the root
 repository root), and leave the Root Directory blank. Do not set the Root
 Directory to `backend`: the API imports `ml_engine`, `routing`, and
 `data_pipeline`, which are sibling directories and must be included in the
-Docker build context.
+Docker build context. Generated `data/` artifacts are created during the image
+build, so they do not need to be committed to the repository.
 
 The routing engine remains deterministic; the briefing generator provides explanations only.
 SQLite is the built-in route-audit store.  The generated offline fixtures are demonstrations,

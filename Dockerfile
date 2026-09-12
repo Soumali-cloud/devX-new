@@ -13,7 +13,9 @@ COPY backend /app/backend
 COPY data_pipeline /app/data_pipeline
 COPY ml_engine /app/ml_engine
 COPY routing /app/routing
-COPY data /app/data
+# Generated scientific artifacts are intentionally not required in the build
+# context. Create deterministic offline fixtures inside the image instead.
+RUN python -m data_pipeline.generate_missing_artifacts
 ENV PYTHONPATH=/app
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
