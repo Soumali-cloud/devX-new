@@ -33,6 +33,94 @@ body {
   transition: background-color 0.25s ease, color 0.25s ease;
 }
 
+/* Shared primary title treatment for operational pages. Home keeps its editorial serif heading. */
+.page-heading {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: clamp(1.5rem, 2.4vw, 2.5rem);
+  font-weight: 900;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
+}
+
+/* Keep simulator controls integrated with the dark polar surface in every theme. */
+.iceberg-control,
+.light .iceberg-control {
+  background: rgba(2, 6, 23, 0.82) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff;
+}
+
+.iceberg-control option {
+  background: #020617;
+  color: #ffffff;
+}
+
+/* The result surface starts compact and expands naturally when data cards are rendered. */
+section:has(img[alt="Antarctic iceberg"]) {
+  min-height: 240px !important;
+  transition: min-height 320ms ease;
+}
+
+section:has(img[alt="Antarctic iceberg"]) > div {
+  min-height: 240px !important;
+  transition: min-height 320ms ease;
+}
+
+section:has(img[alt="Antarctic iceberg"]) .flex {
+  min-height: 190px !important;
+}
+
+section:has(img[alt="Antarctic iceberg"]) img {
+  opacity: 0.34 !important;
+}
+
+section:has(img[alt="Antarctic iceberg"]) > div > div:nth-child(2) {
+  background: rgba(2, 6, 23, 0.55) !important;
+}
+
+/* Power BI report tooltips: keep values readable over the dark report canvas. */
+.recharts-default-tooltip {
+  min-width: 168px;
+  background: linear-gradient(145deg, #ffffff 0%, #f0f9ff 100%) !important;
+  border: 1px solid #7dd3fc !important;
+  border-radius: 12px !important;
+  color: #0f172a !important;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.22), 0 0 0 3px rgba(56, 189, 248, 0.12) !important;
+  padding: 10px 12px !important;
+  font-family: Inter, system-ui, sans-serif !important;
+}
+
+.recharts-default-tooltip .recharts-tooltip-label,
+.recharts-default-tooltip .recharts-tooltip-item,
+.recharts-default-tooltip .recharts-tooltip-item-name,
+.recharts-default-tooltip .recharts-tooltip-item-value {
+  color: #0f172a !important;
+}
+
+.recharts-default-tooltip .recharts-tooltip-label {
+  margin-bottom: 6px !important;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #bae6fd;
+  color: #075985 !important;
+  font-family: "JetBrains Mono", monospace !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.recharts-default-tooltip .recharts-tooltip-item {
+  padding: 2px 0 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+.recharts-default-tooltip .recharts-tooltip-item-value {
+  font-family: "JetBrains Mono", monospace !important;
+  font-weight: 800 !important;
+}
+
 @keyframes polarGlobeRotate {
   from { transform: rotate(0deg) scale(1.04); }
   to { transform: rotate(360deg) scale(1.04); }

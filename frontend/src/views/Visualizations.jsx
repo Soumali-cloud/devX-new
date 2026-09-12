@@ -5,22 +5,11 @@ import {
   Waves,
   Sliders,
   Compass,
-  BarChart2,
   Activity,
   MapPin
 } from 'lucide-react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
-} from 'recharts';
 import { useNavigation } from '../context/NavigationContext';
 import { useTheme } from '../context/ThemeContext';
-import { DRIFT_VELOCITY_HISTOGRAM } from '../services/mockData';
 import { gridToLatLon } from '../utils/geoUtils';
 
 export function Visualizations() {
@@ -34,8 +23,6 @@ export function Visualizations() {
 
   const canvasRef = useRef(null);
 
-  const gridColor = isDark ? '#334155' : '#E2E8F0';
-  const textColor = isDark ? '#94A3B8' : '#475569';
 
   useEffect(() => {
     if (activeVizTab !== 'heatmap') return;
@@ -144,29 +131,20 @@ export function Visualizations() {
   }, []);
 
   return (
-    <div className="w-full flex flex-col items-center py-8 select-none">
+    <div className="relative isolate w-full flex flex-col items-center overflow-hidden py-8 select-none">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-center bg-fixed opacity-[0.16] saturate-75 light:opacity-[0.09]"
+        style={{ backgroundImage: "url('https://eoimages.gsfc.nasa.gov/images/imagerecords/144000/144170/TabularBerg_pho_2018289_lrg.jpg')" }}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full space-y-8">
         
-        {/* Header & Sub-Tabs */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-700/80 light:border-slate-200 pb-5">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-ice-cyan light:text-research-blue uppercase tracking-widest">
-                Scientific Diagnostics
-              </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-research-blue/30 text-ice-cyan border border-ice-cyan/30">
-                ERA5 / NSIDC Tensors
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white light:text-ocean-navy">
-              Atmospheric, Oceanographic & Iceberg Dispersion
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-400">
-              High-resolution 316x332 grid raster matrices, coupled wind-current vectors, and empirical drift distributions.
-            </p>
-          </div>
-
-          <div className="flex items-center p-1 rounded-xl bg-ocean-navy/80 light:bg-slate-100 border border-slate-700/80 light:border-slate-200 self-start sm:self-center">
+        {/* Visualization tabs */}
+        <div className="flex items-center justify-between gap-4 border-b border-slate-700/80 light:border-slate-200 pb-5">
+          <h1 className="page-heading text-white light:text-ocean-navy">
+            Scientific Diagonestic:
+          </h1>
+          <div className="flex items-center p-1 rounded-xl bg-ocean-navy/80 light:bg-slate-100 border border-slate-700/80 light:border-slate-200">
             <button
               onClick={() => setActiveVizTab('heatmap')}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
@@ -189,17 +167,6 @@ export function Visualizations() {
               <Wind className="w-3.5 h-3.5" />
               <span>ERA5 Vectors</span>
             </button>
-            <button
-              onClick={() => setActiveVizTab('histogram')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeVizTab === 'histogram'
-                  ? 'bg-ice-cyan text-midnight shadow-sm font-bold btn-glow-cyan'
-                  : 'text-slate-400 hover:text-white light:hover:text-ocean-navy btn-glow-subtle'
-              }`}
-            >
-              <BarChart2 className="w-3.5 h-3.5" />
-              <span>Kinematic Velocity</span>
-            </button>
           </div>
         </div>
 
@@ -207,21 +174,7 @@ export function Visualizations() {
         {activeVizTab === 'heatmap' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            <div className="lg:col-span-2 p-6 rounded-2xl border border-slate-700/80 light:border-slate-200 bg-ocean-navy/80 light:bg-white space-y-4 shadow-sm flex flex-col items-center">
-              <div className="w-full flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-base text-white light:text-ocean-navy">
-                    Sea Ice Spatial Concentration Heatmap (316 x 332 Grid)
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    Forecast Day T+{forecastDay} EPSG:3031 raster matrix projection
-                  </p>
-                </div>
-                <span className="text-xs font-mono text-slate-400">
-                  1 Pixel = ~25 km Cell
-                </span>
-              </div>
-
+            <div className="lg:col-span-2 lg:self-start p-4 sm:p-5 rounded-2xl border border-slate-700/55 light:border-slate-300/70 bg-ocean-navy/45 light:bg-white/60 backdrop-blur-md space-y-3 shadow-lg shadow-midnight/15 flex flex-col items-center">
               <div className="relative border border-slate-700 rounded-xl overflow-hidden bg-midnight shadow-inner max-w-md w-full aspect-[332/316]">
                 <canvas
                   ref={canvasRef}
@@ -251,19 +204,10 @@ export function Visualizations() {
               </div>
             </div>
 
-            <div className="p-6 rounded-2xl border border-slate-700/80 light:border-slate-200 bg-ocean-navy/80 light:bg-white space-y-6 shadow-sm">
-              <div>
-                <h3 className="font-bold text-base text-white light:text-ocean-navy">
-                  Matrix Rendering Controls
-                </h3>
-                <p className="text-xs text-slate-400 light:text-slate-600">
-                  Spectrophotometric transfer functions & temporal progression
-                </p>
-              </div>
-
+            <div className="lg:sticky lg:top-6 lg:self-start p-4 rounded-2xl border border-slate-700/60 light:border-slate-300/70 bg-ocean-navy/50 light:bg-white/65 backdrop-blur-md space-y-4 shadow-lg shadow-midnight/20">
               {/* Dynamic 7-Day Horizon Selector */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs font-semibold text-slate-300 light:text-slate-700">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-slate-300 light:text-slate-700">
                   <span>Forecast Horizon:</span>
                   <span className="font-mono text-ice-cyan font-bold">Day T+{forecastDay}</span>
                 </div>
@@ -272,7 +216,7 @@ export function Visualizations() {
                     <button
                       key={d}
                       onClick={() => setForecastDay(d)}
-                      className={`py-1.5 rounded-lg text-center font-mono text-[11px] transition-all border cursor-pointer ${
+                      className={`py-1 rounded-lg text-center font-mono text-[10px] transition-all border cursor-pointer ${
                         forecastDay === d
                           ? 'bg-ice-cyan text-midnight font-bold border-ice-cyan shadow-sm scale-105 btn-glow-cyan'
                           : 'bg-midnight/60 light:bg-slate-50 text-slate-300 light:text-slate-700 border-slate-700 hover:border-ice-cyan/60 btn-glow-subtle'
@@ -285,8 +229,8 @@ export function Visualizations() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-300 light:text-slate-700 block">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold text-slate-300 light:text-slate-700 block">
                   Colormap Palette:
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -298,7 +242,7 @@ export function Visualizations() {
                     <button
                       key={p.id}
                       onClick={() => setColorMap(p.id)}
-                      className={`py-2 px-1 text-center rounded-lg text-xs font-mono border transition-all cursor-pointer ${
+                      className={`py-1.5 px-1 text-center rounded-lg text-[11px] font-mono border transition-all cursor-pointer ${
                         colorMap === p.id
                           ? 'bg-ice-cyan text-midnight font-bold border-ice-cyan shadow-sm btn-glow-cyan'
                           : 'bg-midnight/60 light:bg-slate-50 text-slate-300 light:text-slate-700 border-slate-700 hover:border-ice-cyan/50 btn-glow-subtle'
@@ -310,8 +254,8 @@ export function Visualizations() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs font-semibold text-slate-300 light:text-slate-700">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-slate-300 light:text-slate-700">
                   <span>Concentration Cutoff Filter:</span>
                   <span className="font-mono text-ice-cyan font-bold">{(minIceFilter * 100).toFixed(0)}%</span>
                 </div>
@@ -330,14 +274,14 @@ export function Visualizations() {
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl border border-slate-700/70 bg-midnight/50 light:bg-slate-50 space-y-2 text-xs font-mono">
+              {/* Tensor specifications removed from the Scientific Data page.
                 <div className="font-bold text-ice-cyan text-[11px]">TENSOR SPECIFICATIONS</div>
                 <div className="flex justify-between"><span>Matrix Dimensions:</span><strong className="text-white light:text-ocean-navy">316 x 332</strong></div>
                 <div className="flex justify-between"><span>Total Cells:</span><strong className="text-white light:text-ocean-navy">104,912</strong></div>
                 <div className="flex justify-between"><span>Coordinate CRS:</span><strong className="text-white light:text-ocean-navy">EPSG:3031</strong></div>
                 <div className="flex justify-between"><span>Projection Center:</span><strong className="text-white light:text-ocean-navy">-90.00° Lat</strong></div>
                 <div className="flex justify-between"><span>Grid Spacing:</span><strong className="text-white light:text-ocean-navy">25.0 km</strong></div>
-              </div>
+              */}
 
             </div>
 
@@ -349,7 +293,7 @@ export function Visualizations() {
           <div className="p-6 rounded-2xl border border-slate-700/80 light:border-slate-200 bg-ocean-navy/80 light:bg-white space-y-6 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700/80 pb-3">
               <div>
-                <h3 className="font-bold text-base text-white light:text-ocean-navy">
+                <h3 className="font-mono text-xs font-bold uppercase tracking-[0.14em] text-ice-cyan sm:text-sm sm:tracking-[0.2em]">
                   ERA5 Atmospheric Wind (10m) & Surface Current Vectors
                 </h3>
                 <p className="text-xs text-slate-400">
@@ -398,7 +342,7 @@ export function Visualizations() {
           </div>
         )}
 
-        {/* View 3: Historical Iceberg Drift Velocity Distribution */}
+        {/* Historical iceberg drift velocity visualization removed.
         {activeVizTab === 'histogram' && (
           <div className="p-6 rounded-2xl border border-slate-700/80 light:border-slate-200 bg-ocean-navy/80 light:bg-white space-y-6 shadow-sm">
             <div className="border-b border-slate-700/80 pb-3">
@@ -446,7 +390,7 @@ export function Visualizations() {
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
       </div>
     </div>

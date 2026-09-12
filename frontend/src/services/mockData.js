@@ -12,6 +12,8 @@ export const MOCK_ICEBERGS = [
     grid_row: 95,
     grid_column: 112,
     area_sq_km: 3900,
+    length_m: 78000,
+    width_m: 50000,
     thickness_m: 350,
     drift_speed_knots: 1.4,
     drift_heading_deg: 42,
@@ -27,6 +29,8 @@ export const MOCK_ICEBERGS = [
     grid_row: 140,
     grid_column: 245,
     area_sq_km: 1636,
+    length_m: 46000,
+    width_m: 35565,
     thickness_m: 210,
     drift_speed_knots: 0.9,
     drift_heading_deg: 285,
@@ -42,6 +46,8 @@ export const MOCK_ICEBERGS = [
     grid_row: 220,
     grid_column: 290,
     area_sq_km: 840,
+    length_m: 35000,
+    width_m: 24000,
     thickness_m: 180,
     drift_speed_knots: 0.6,
     drift_heading_deg: 310,
@@ -57,6 +63,8 @@ export const MOCK_ICEBERGS = [
     grid_row: 180,
     grid_column: 270,
     area_sq_km: 520,
+    length_m: 26000,
+    width_m: 20000,
     thickness_m: 160,
     drift_speed_knots: 1.1,
     drift_heading_deg: 260,
@@ -72,6 +80,8 @@ export const MOCK_ICEBERGS = [
     grid_row: 60,
     grid_column: 95,
     area_sq_km: 2150,
+    length_m: 50000,
+    width_m: 43000,
     thickness_m: 220,
     drift_speed_knots: 1.8,
     drift_heading_deg: 65,
@@ -90,6 +100,29 @@ export const MOCK_FORECAST_DAYS = [
   { day: 6, label: 'T+6 (+120h)', mean_ice: 0.45, max_ice: 0.95, high_risk_fraction: 0.30, wind_kts: 26, temp_c: -19 },
   { day: 7, label: 'T+7 (+144h)', mean_ice: 0.43, max_ice: 0.94, high_risk_fraction: 0.29, wind_kts: 22, temp_c: -17 }
 ];
+
+function estimateSyntheticRouteMetrics(path, risk, multiplier) {
+  const distanceKm = path.slice(1).reduce((total, point, index) => {
+    const [lon1, lat1] = path[index];
+    const [lon2, lat2] = point;
+    const radians = Math.PI / 180;
+    const a = Math.sin((lat2 - lat1) * radians / 2) ** 2
+      + Math.cos(lat1 * radians) * Math.cos(lat2 * radians)
+      * Math.sin((lon2 - lon1) * radians / 2) ** 2;
+    return total + 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }, 0);
+  const adjustedRisk = Math.min(0.98, risk * multiplier.risk_reduction);
+  return {
+    distance_km: +distanceKm.toFixed(1),
+    distance_nm: +(distanceKm * 0.539957).toFixed(1),
+    estimated_fuel_tons: +(distanceKm * 0.046 * (1 + adjustedRisk) * multiplier.fuel).toFixed(1),
+    ice_risk_score: +adjustedRisk.toFixed(3),
+    minimum_speed_knots: +(12 * (1 - adjustedRisk * 0.45) * multiplier.speed).toFixed(1),
+    peak_power_kw: +((5200 + adjustedRisk * 7000) * multiplier.fuel).toFixed(0),
+    avg_ice_exposure_pct: +(adjustedRisk * 100).toFixed(1),
+    hull_stress_index: +(adjustedRisk * 100).toFixed(0),
+  };
+}
 
 export function generateSyntheticRoutes(startLat, startLon, endLat, endLon, iceClass = 'PC5') {
   // Class penalties and fuel multipliers
@@ -127,6 +160,12 @@ export function generateSyntheticRoutes(startLat, startLon, endLat, endLon, iceC
     safestPath.push([baseLon + safeOffsetLon, baseLat + safeOffsetLat]);
   }
 
+  // Offline values are calculated from the exact synthetic trajectory, so a
+  // changed start/goal updates each card and path together.
+  const safestMetrics = estimateSyntheticRouteMetrics(safestPath, 0.14, mult);
+  const fuelMetrics = estimateSyntheticRouteMetrics(fuelOptimalPath, 0.29, mult);
+  const shortestMetrics = estimateSyntheticRouteMetrics(shortestPath, 0.68, mult);
+
   return {
     origin: [startLon, startLat],
     destination: [endLon, endLat],
@@ -137,14 +176,8 @@ export function generateSyntheticRoutes(startLat, startLon, endLat, endLon, iceC
         name: 'Safest',
         color: '#22C55E',
         path: safestPath,
-        distance_km: 1845.2,
-        distance_nm: 996.3,
-        estimated_fuel_tons: +(84.2 * mult.fuel).toFixed(1),
-        ice_risk_score: +(0.14 * mult.risk_reduction).toFixed(3),
-        minimum_speed_knots: +(11.8 * mult.speed).toFixed(1),
-        peak_power_kw: 6200,
-        avg_ice_exposure_pct: 12.4,
-        hull_stress_index: +(18 * mult.risk_reduction).toFixed(0),
+        path_coordinate_system: 'wgs84',
+        ...safestMetrics,
         status: 'RECOMMENDED_POLAR'
       },
       {
@@ -152,14 +185,8 @@ export function generateSyntheticRoutes(startLat, startLon, endLat, endLon, iceC
         name: 'Fuel-Optimal',
         color: '#3B82F6',
         path: fuelOptimalPath,
-        distance_km: 1612.0,
-        distance_nm: 870.4,
-        estimated_fuel_tons: +(69.8 * mult.fuel).toFixed(1),
-        ice_risk_score: +(0.29 * mult.risk_reduction).toFixed(3),
-        minimum_speed_knots: +(9.4 * mult.speed).toFixed(1),
-        peak_power_kw: 7400,
-        avg_ice_exposure_pct: 27.6,
-        hull_stress_index: +(38 * mult.risk_reduction).toFixed(0),
+        path_coordinate_system: 'wgs84',
+        ...fuelMetrics,
         status: 'LEAST_BURN'
       },
       {
@@ -167,14 +194,8 @@ export function generateSyntheticRoutes(startLat, startLon, endLat, endLon, iceC
         name: 'Shortest',
         color: '#F59E0B',
         path: shortestPath,
-        distance_km: 1420.5,
-        distance_nm: 767.0,
-        estimated_fuel_tons: +(108.6 * mult.fuel).toFixed(1),
-        ice_risk_score: +(0.68 * mult.risk_reduction).toFixed(3),
-        minimum_speed_knots: +(5.2 * mult.speed).toFixed(1),
-        peak_power_kw: 9850,
-        avg_ice_exposure_pct: 64.2,
-        hull_stress_index: +(82 * mult.risk_reduction).toFixed(0),
+        path_coordinate_system: 'wgs84',
+        ...shortestMetrics,
         status: 'HIGH_RISK'
       }
     ]

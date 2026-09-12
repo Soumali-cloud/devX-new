@@ -91,7 +91,7 @@ export function MissionArchitecture({ embedded = false }) {
                 Polar AI Marine Engineering
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white light:text-ocean-navy">
+            <h1 className="page-heading text-white light:text-ocean-navy">
               Mission Architecture & Computational Core
             </h1>
             <p className="text-xs sm:text-sm text-slate-400 light:text-slate-600">

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigation } from '../context/NavigationContext';
+import himyatraLogo from '../assets/himyatra-logo.jpeg';
 
 export function Navbar() {
   const { theme, toggleTheme, isDark } = useTheme();
@@ -58,12 +59,12 @@ export function Navbar() {
   }, [isLeftDrawerOpen]);
 
   const navItems = [
-    { id: 'landing', label: 'Home', icon: Compass, desc: 'Mission overview & quick launch' },
-    { id: 'map', label: 'Live Map', icon: Navigation, desc: 'EPSG:3031 Polar Deck.gl engine' },
-    { id: 'dashboard', label: 'Analytics', icon: Activity, desc: 'Vessel fuel, ice & hull stress' },
-    { id: 'sea-level-impact', label: 'Sea-Level Impact', icon: Waves, desc: 'Iceberg melt & net contribution' },
-    { id: 'visualizations', label: 'Scientific Data', icon: BarChart3, desc: '316x332 grid & ERA5 vectors' },
-    { id: 'settings', label: 'Admin Settings', icon: Sliders, desc: 'Operational parameters', restricted: true },
+    { id: 'landing', label: 'Home', icon: Compass },
+    { id: 'map', label: 'Trajectory Map', icon: Navigation },
+    { id: 'sea-level-impact', label: 'Melt and Sea Level Impact', icon: Waves },
+    { id: 'dashboard', label: 'Polar Navigation Analysis', icon: Activity },
+    { id: 'visualizations', label: 'Scientific Diagnostics', icon: BarChart3 },
+    { id: 'settings', label: 'Admin Settings', icon: Sliders, restricted: true },
   ];
 
   const handleSelectTab = (tabId) => {
@@ -102,8 +103,8 @@ export function Navbar() {
               className="flex items-center gap-2.5 sm:gap-3 cursor-pointer select-none group"
               title="Return to Home Overview"
             >
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-research-blue via-ocean-navy to-midnight border border-ice-cyan/40 group-hover:border-ice-cyan flex items-center justify-center text-ice-cyan shadow-sm transition-all group-hover:scale-105">
-                <Compass className="w-5 h-5 group-hover:rotate-45 transition-transform duration-300" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 overflow-hidden rounded-xl border border-ice-cyan/40 bg-midnight shadow-sm transition-all group-hover:scale-105 group-hover:border-ice-cyan">
+                <img src={himyatraLogo} alt="HimYatra logo" className="h-full w-full object-cover" />
               </div>
 
               <div className="flex flex-col">
@@ -211,16 +212,13 @@ export function Navbar() {
             <div>
               <div className="p-5 border-b border-slate-700/80 light:border-slate-200 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-research-blue to-ocean-navy border border-ice-cyan/40 flex items-center justify-center text-ice-cyan shadow-sm">
-                    <Compass className="w-6 h-6" />
+                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-ice-cyan/40 bg-midnight shadow-sm">
+                    <img src={himyatraLogo} alt="HimYatra logo" className="h-full w-full object-cover" />
                   </div>
                   <div>
-                    <h2 className="text-base font-extrabold text-white light:text-ocean-navy tracking-wider uppercase">
-                      HimYatra Portal
+                    <h2 className="text-base font-extrabold text-white light:text-ocean-navy tracking-wide">
+                      HimYatra : The polar journey
                     </h2>
-                    <p className="text-[11px] text-ice-cyan light:text-research-blue font-medium">
-                      AI-Enabled Polar Navigation & Iceberg Trajectory DSS
-                    </p>
                   </div>
                 </div>
 
@@ -259,9 +257,6 @@ export function Navbar() {
                           <div className="font-bold text-sm text-white light:text-ocean-navy">
                             {item.label}
                           </div>
-                          <div className="text-[11px] text-slate-400">
-                            {item.desc}
-                          </div>
                         </div>
                       </div>
 
@@ -288,7 +283,7 @@ export function Navbar() {
                 </span>
               </div>
               <div className="text-[10px] text-slate-500 light:text-slate-600 font-semibold">
-                HimYatra: The Polar Journey
+                HimYatra : The polar journey
               </div>
             </div>
 

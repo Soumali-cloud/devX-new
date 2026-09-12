@@ -15,6 +15,18 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 GRID_SHAPE = (316, 332)
 
 
+def _first_value(row: dict[str, object], *names: str) -> object | None:
+    return next((row[name] for name in names if row.get(name) not in (None, "")), None)
+
+
+def _number(row: dict[str, object], *names: str) -> float | None:
+    value = _first_value(row, *names)
+    try:
+        return float(str(value).replace(",", "")) if value is not None else None
+    except ValueError:
+        return None
+
+
 def fetch_wind_current_vectors(days: int = 7) -> dict[str, np.ndarray]:
     """Return ERA5-compatible vector arrays for the Antarctic grid.
 
@@ -67,16 +79,29 @@ def fetch_usnic_icebergs(url: str | None = None) -> list[dict[str, object]]:
     observations: list[dict[str, object]] = []
     for row in csv.DictReader(io.StringIO(text)):
         normalized = {str(key).strip().lower(): value for key, value in row.items()}
-        identifier = normalized.get("name") or normalized.get("id") or normalized.get("iceberg_id")
-        latitude = normalized.get("lat") or normalized.get("latitude")
-        longitude = normalized.get("lon") or normalized.get("longitude")
+        identifier = _first_value(normalized, "name", "id", "iceberg_id")
+        latitude = _first_value(normalized, "lat", "latitude")
+        longitude = _first_value(normalized, "lon", "longitude")
         if not identifier or latitude in (None, "") or longitude in (None, ""):
             continue
         try:
+            area_sq_km = _number(normalized, "area_sq_km", "area_km2", "area_km²", "area")
+            length_m = _number(normalized, "length_m", "length", "major_axis_m", "size_1_m")
+            width_m = _number(normalized, "width_m", "width", "minor_axis_m", "size_2_m")
+            # USNIC feeds do not always publish axes. Use a declared estimate
+            # from observed area in that case, rather than returning blanks.
+            if area_sq_km and area_sq_km > 0 and (not length_m or not width_m):
+                length_m = (area_sq_km * 1_000_000 * 1.5) ** 0.5
+                width_m = length_m / 1.5
             observations.append({
                 "iceberg_id": str(identifier),
                 "latitude": float(latitude),
                 "longitude": float(longitude),
+                "area_sq_km": area_sq_km,
+                "length_m": length_m,
+                "width_m": width_m,
+                "thickness_m": _number(normalized, "thickness_m", "thickness"),
+                "dimensions_status": "observed" if length_m and width_m and _first_value(normalized, "length_m", "length", "major_axis_m", "size_1_m") else "estimated",
                 "track_history": [],
             })
         except ValueError:

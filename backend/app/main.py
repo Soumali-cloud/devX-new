@@ -151,13 +151,20 @@ class RouteRequest(BaseModel):
 
 class Route(BaseModel):
 	"""Single route option with metrics."""
+	id: str
 	name: str  # "Safest", "Fuel-Optimal", "Shortest"
-	path: list  # List of [row, col] waypoints
-	distance: float
+	path: list  # Navigation-grid [row, col] waypoints, retained for route analysis.
+	display_path: list  # WGS84 [longitude, latitude] waypoints for map rendering.
+	path_coordinate_system: str = "grid"
+	distance_km: float
+	distance_nm: float
 	ice_risk_score: float
+	avg_ice_exposure_pct: float
 	estimated_fuel_tons: float
 	minimum_speed_knots: float = 0.0
 	peak_power_kw: float = 0.0
+	hull_stress_index: float = 0.0
+	status: str = ""
 
 
 class RouteResponse(BaseModel):
@@ -317,12 +324,32 @@ def compute_routes(req: RouteRequest, _: None = Depends(require_api_key)) -> Rou
 			))
 		except (KeyError, TypeError, ValueError):
 			continue
-	route_options = generate_route_options(forecast_grid, start, goal, iceberg_positions, req.vessel_ice_class or "PC5")
+	# Start the time-dependent solver at the selected forecast horizon.  Passing
+	# the whole tensor here silently made every request begin on day one.
+	route_options = generate_route_options(
+		forecast_grid[req.forecast_day - 1:], start, goal, iceberg_positions,
+		req.vessel_ice_class or "PC5",
+	)
 	route_labels = {"safest": "Safest", "fuel_optimal": "Fuel-Optimal", "shortest": "Shortest"}
-	routes = [
-		Route(name=route_labels[name], path=[list(point) for point in option["path"]], distance=option["metrics"]["distance_km"], ice_risk_score=option["metrics"]["avg_ice_risk"], estimated_fuel_tons=option["metrics"]["estimated_fuel_tons"], minimum_speed_knots=option["metrics"]["minimum_speed_knots"], peak_power_kw=option["metrics"]["peak_power_kw"])
-		for name, option in route_options.items()
-	]
+	routes = []
+	for name, option in route_options.items():
+		grid_path = [list(point) for point in option["path"]]
+		display_path = [[longitude, latitude] for row, column in option["path"] for latitude, longitude in [grid_to_latlon(row, column)]]
+		routes.append(Route(
+			id=name,
+			name=route_labels[name],
+			path=grid_path,
+		display_path=display_path,
+		distance_km=option["metrics"]["distance_km"],
+		distance_nm=round(option["metrics"]["distance_km"] * 0.539957, 1),
+		ice_risk_score=option["metrics"]["avg_ice_risk"],
+		avg_ice_exposure_pct=round(option["metrics"]["avg_ice_risk"] * 100, 1),
+		estimated_fuel_tons=option["metrics"]["estimated_fuel_tons"],
+		minimum_speed_knots=option["metrics"]["minimum_speed_knots"],
+		peak_power_kw=option["metrics"]["peak_power_kw"],
+		hull_stress_index=round(option["metrics"]["avg_ice_risk"] * 100, 1),
+		status={"safest": "RECOMMENDED", "fuel_optimal": "LOWEST_FUEL", "shortest": "SHORTEST_DISTANCE"}[name],
+		))
 	
 	result = RouteResponse(
 		forecast_day=req.forecast_day,
@@ -382,7 +409,11 @@ def get_mission_summary(mission_id: str, db=Depends(get_db)) -> dict:
 	latest_payload = payloads[-1]
 	all_options = [option for payload in payloads for option in payload.get("routes", [])]
 	ice_scores = [float(option["ice_risk_score"]) for option in all_options if option.get("ice_risk_score") is not None]
-	distances = [float(option["distance"]) for option in all_options if option.get("distance") is not None]
+	distances = [
+		float(option.get("distance_km", option.get("distance")))
+		for option in all_options
+		if option.get("distance_km", option.get("distance")) is not None
+	]
 	audit_material = "\n".join(
 		f"{route.id}|{route.created_at.isoformat()}|{route.route_data}" for route in routes
 	)

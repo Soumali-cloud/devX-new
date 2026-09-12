@@ -158,6 +158,10 @@ export async function computeRoutes({
   const goalGrid = (goalCoords[0] < 0 && Math.abs(goalCoords[0]) <= 90)
     ? latLonToGrid(goalCoords[0], goalCoords[1])
     : goalCoords;
+  const startLat = (startCoords[0] < 0 && Math.abs(startCoords[0]) <= 90) ? startCoords[0] : -70.7667;
+  const startLon = (startCoords[0] < 0 && Math.abs(startCoords[0]) <= 90) ? startCoords[1] : 11.7333;
+  const goalLat = (goalCoords[0] < 0 && Math.abs(goalCoords[0]) <= 90) ? goalCoords[0] : -69.4072;
+  const goalLon = (goalCoords[0] < 0 && Math.abs(goalCoords[0]) <= 90) ? goalCoords[1] : 76.1953;
 
   if (!offlineMode) {
     try {
@@ -172,16 +176,13 @@ export async function computeRoutes({
       return res.data;
     } catch (err) {
       console.warn('[HimYatra API] Compute routes fallback:', err.message);
+	  const fallback = generateSyntheticRoutes(startLat, startLon, goalLat, goalLon, vesselIceClass);
+	  return { ...fallback, data_source: 'synthetic', fallback_reason: err.message };
     }
   }
 
   // Generate synthetic routes based on input positions
-  const startLat = (startCoords[0] < 0 && Math.abs(startCoords[0]) <= 90) ? startCoords[0] : -70.7667;
-  const startLon = (startCoords[0] < 0 && Math.abs(startCoords[0]) <= 90) ? startCoords[1] : 11.7333;
-  const goalLat = (goalCoords[0] < 0 && Math.abs(goalCoords[0]) <= 90) ? goalCoords[0] : -69.4072;
-  const goalLon = (goalCoords[0] < 0 && Math.abs(goalCoords[0]) <= 90) ? goalCoords[1] : 76.1953;
-
-  return generateSyntheticRoutes(startLat, startLon, goalLat, goalLon, vesselIceClass);
+	return { ...generateSyntheticRoutes(startLat, startLon, goalLat, goalLon, vesselIceClass), data_source: 'synthetic' };
 }
 
 /**

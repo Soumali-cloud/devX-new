@@ -1,19 +1,40 @@
 ﻿import { PathLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers';
 
+import { gridToLatLon } from '../utils/geoUtils';
+
+function toDisplayPath(route) {
+  if (Array.isArray(route.display_path) && route.display_path.length > 1) {
+    return route.display_path;
+  }
+
+  if (route.path_coordinate_system === 'wgs84') return route.path || [];
+
+  return (route.path || []).map(([row, column]) => {
+    const { lat, lon } = gridToLatLon(row, column);
+    return [lon, lat];
+  });
+}
+
+const ROUTE_COLORS = {
+  safest: [34, 197, 94],
+  fuel_optimal: [59, 130, 246],
+  shortest: [239, 68, 68],
+};
+
 export function createRouteLayers({ routes, selectedRouteId, startPoint, goalPoint }) {
   if (!routes || routes.length === 0) return [];
 
   const pathData = routes.map(r => ({
     id: r.id,
     name: r.name,
-    path: r.path, // Array of [lon, lat]
-    color: r.id === 'safest' 
-      ? [34, 197, 94] 
-      : r.id === 'fuel_optimal' 
-      ? [59, 130, 246] 
-      : [245, 158, 11],
+    path: toDisplayPath(r), // Deck.gl requires WGS84 [longitude, latitude].
+    color: ROUTE_COLORS[r.id] || [148, 163, 184],
     isSelected: r.id === selectedRouteId,
-    distance_km: r.distance_km,
+    // Keep a display-ready value on the picked DeckGL object.  Older API
+    // payloads use `distance`; current payloads use `distance_km`.
+    distanceKm: Number(r.distance_km ?? r.distance),
+    distance_km: Number(r.distance_km ?? r.distance),
+    distance_nm: Number(r.distance_nm),
     fuel_tons: r.estimated_fuel_tons,
     ice_risk: r.ice_risk_score
   }));
@@ -24,11 +45,11 @@ export function createRouteLayers({ routes, selectedRouteId, startPoint, goalPoi
     data: pathData,
     pickable: true,
     widthScale: 1,
-    widthMinPixels: 2,
-    widthMaxPixels: 12,
+    widthMinPixels: 3,
+    widthMaxPixels: 14,
     getPath: d => d.path,
-    getColor: d => (d.isSelected ? [...d.color, 255] : [...d.color, 140]),
-    getWidth: d => (d.isSelected ? 6 : 3),
+    getColor: d => (d.isSelected ? [...d.color, 255] : [...d.color, 105]),
+    getWidth: d => (d.isSelected ? 7 : 4),
     capRounded: true,
     jointRounded: true,
     updateTriggers: {

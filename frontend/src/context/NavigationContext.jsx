@@ -9,6 +9,14 @@ import { ANTARCTIC_PRESETS } from '../utils/geoUtils';
 
 const NavigationContext = createContext(null);
 
+function normalizeRouteId(route) {
+  const raw = String(route.id || route.name || '').toLowerCase().replace(/[^a-z]+/g, '_').replace(/^_|_$/g, '');
+  if (raw === 'safe' || raw === 'safest') return 'safest';
+  if (raw === 'fueloptimal' || raw === 'fuel_optimal' || raw === 'fuel') return 'fuel_optimal';
+  if (raw === 'short' || raw === 'shortest') return 'shortest';
+  return raw;
+}
+
 export function NavigationProvider({ children }) {
   const [currentTab, setCurrentTab] = useState('landing');
   const [forecastDay, setForecastDay] = useState(1);
@@ -16,6 +24,7 @@ export function NavigationProvider({ children }) {
   const [startPoint, setStartPoint] = useState(ANTARCTIC_PRESETS[0]); // Maitri Station
   const [goalPoint, setGoalPoint] = useState(ANTARCTIC_PRESETS[1]);  // Bharati Station
   const [routeData, setRouteData] = useState(null);
+  const [routeError, setRouteError] = useState(null);
   const [selectedRouteId, setSelectedRouteId] = useState('safest');
   const [icebergs, setIcebergs] = useState([]);
   const [seaIcePoints, setSeaIcePoints] = useState([]);
@@ -84,6 +93,9 @@ export function NavigationProvider({ children }) {
   // Compute routes
   const refreshRoutes = useCallback(async () => {
     setIsComputing(true);
+    setRouteError(null);
+    // Never present a previous configuration as the result of a new request.
+    setRouteData(null);
     try {
       const data = await computeRoutes({
         startCoords: [startPoint.lat, startPoint.lon],
@@ -91,9 +103,16 @@ export function NavigationProvider({ children }) {
         forecastDay,
         vesselIceClass
       });
-      setRouteData(data);
+      const routes = (data?.routes || []).map((route) => ({ ...route, id: normalizeRouteId(route) }));
+      setRouteData({
+        ...data,
+        routes
+      });
+	  // Keep selection valid after a recalculation changes the available routes.
+	  setSelectedRouteId((current) => routes.some((route) => route.id === current) ? current : routes[0]?.id || 'safest');
     } catch (err) {
       console.error('Failed to compute routes:', err);
+      setRouteError('Route calculation is unavailable. Predicted route data will be used when enabled.');
     } finally {
       setIsComputing(false);
     }
@@ -120,6 +139,7 @@ export function NavigationProvider({ children }) {
         goalPoint,
         setGoalPoint,
         routeData,
+        routeError,
         selectedRouteId,
         setSelectedRouteId,
         activeRoute,

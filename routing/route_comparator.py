@@ -32,16 +32,27 @@ def calculate_hydrodynamic_fuel(
 	base_speed_knots = 12.0
 	class_multipliers = {"PC1": 1.1, "PC3": 1.3, "PC5": 1.6, "PC7": 2.0, "Standard": 3.5}
 	k_ice = class_multipliers.get(vessel_ice_class, 1.6)
-	total_distance = (len(path) - 1) * cell_resolution_km
+	forecast = np.asarray(grid, dtype=float)
+	if forecast.ndim == 2:
+		forecast = forecast[None, ...]
+	if forecast.ndim != 3:
+		raise ValueError("grid must be a 2D grid or 3D forecast tensor")
+	total_distance = 0.0
 	total_fuel = 0.0
 	peak_power_kw = 0.0
 	minimum_speed_knots = base_speed_knots
 	ice_values: list[float] = []
 
-	for row, column in path:
-		ice_concentration = float(np.clip(grid[row, column], 0.0, 1.0))
+	for step, (row, column) in enumerate(path):
+		segment_distance_km = 0.0
+		if step:
+			previous_row, previous_column = path[step - 1]
+			segment_distance_km = float(np.hypot(row - previous_row, column - previous_column)) * cell_resolution_km
+			total_distance += segment_distance_km
+		forecast_day = min(step // 10, forecast.shape[0] - 1)
+		ice_concentration = float(np.clip(forecast[forecast_day, row, column], 0.0, 1.0))
 		ice_values.append(ice_concentration)
-		open_water_fuel = base_fuel_rate * cell_resolution_km
+		open_water_fuel = base_fuel_rate * segment_distance_km
 		ice_thickness = ice_concentration * 2.0
 		speed_knots = base_speed_knots * (1.0 - 0.45 * max(0.0, ice_concentration - 0.5) / 0.5)
 		speed_knots = max(6.0, speed_knots)
@@ -75,13 +86,20 @@ def generate_route_options(
 	if forecast_tensor.ndim != 3:
 		raise ValueError("forecast_tensor must have shape (days, height, width)")
 	grid = forecast_tensor[0]
+	# Each candidate is independently optimised against the forecast rather than
+	# being a presentation variant of a single path.  The distinct objective
+	# weights are intentionally kept here (the source of truth for both map
+	# geometry and the metrics returned to the client).
 	paths = {
-		"safest": dynamic_astar(forecast_tensor, start, goal, iceberg_positions, w_distance=1.0, w_ice=25.0, w_iceberg=20.0, iceberg_buffer_radius=8.0, max_ice_threshold=0.75),
+		# Safety accepts a longer diversion to stay in lower-concentration water
+		# and farther from iceberg buffers.  Fuel uses a moderate ice penalty;
+		# shortest uses distance as the dominant cost while still avoiding blocked ice.
+		"safest": dynamic_astar(forecast_tensor, start, goal, iceberg_positions, w_distance=0.5, w_ice=100.0, w_iceberg=40.0, iceberg_buffer_radius=12.0, max_ice_threshold=0.75, search_margin=80),
 		"fuel_optimal": dynamic_astar(forecast_tensor, start, goal, iceberg_positions, w_distance=2.0, w_ice=5.0, w_iceberg=8.0, iceberg_buffer_radius=4.0, max_ice_threshold=0.88),
-		"shortest": dynamic_astar(forecast_tensor, start, goal, iceberg_positions, w_distance=5.0, w_ice=0.5, w_iceberg=2.0, iceberg_buffer_radius=2.0, max_ice_threshold=0.98),
+		"shortest": dynamic_astar(forecast_tensor, start, goal, iceberg_positions, w_distance=10.0, w_ice=0.1, w_iceberg=2.0, iceberg_buffer_radius=2.0, max_ice_threshold=0.98),
 	}
 
 	return {
-		name: {"path": path, "metrics": calculate_hydrodynamic_fuel(path, grid, vessel_ice_class)}
+		name: {"path": path, "metrics": calculate_hydrodynamic_fuel(path, forecast_tensor, vessel_ice_class)}
 		for name, path in paths.items()
 	}

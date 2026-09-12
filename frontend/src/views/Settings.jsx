@@ -210,7 +210,7 @@ export function Settings() {
                 devx2026@gmail.com
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white light:text-ocean-navy">
+            <h1 className="page-heading text-white light:text-ocean-navy">
               Operational Settings & Machine Learning Daemon Targets
             </h1>
             <p className="text-xs sm:text-sm text-slate-400">
