@@ -13,7 +13,7 @@ const useLocalDevProxy = import.meta.env.DEV;
 const getStoredSettings = () => {
   // During local Vite development, always use its /api and /health proxies.
   // This prevents stale browser settings from selecting an unavailable server.
-  const endpoint = useLocalDevProxy ? '' : (localStorage.getItem('himyatra_api_endpoint') || 'http://127.0.0.1:8000');
+  const endpoint = useLocalDevProxy ? '' : (localStorage.getItem('himyatra_api_endpoint') || 'https://devx-new-1.onrender.com');
   const apiKey = useLocalDevProxy ? 'dev-polar-secret-key-2026' : (localStorage.getItem('himyatra_api_key') || 'dev-polar-secret-key-2026');
   const offlineMode = useLocalDevProxy ? false : localStorage.getItem('himyatra_offline_mode') === 'true';
   return { endpoint, apiKey, offlineMode };

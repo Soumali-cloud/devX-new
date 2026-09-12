@@ -47,7 +47,7 @@ export function Settings() {
   const [loginError, setLoginError] = useState('');
 
   const [endpoint, setEndpoint] = useState(() => {
-    return localStorage.getItem('himyatra_api_endpoint') || 'http://127.0.0.1:8000';
+    return localStorage.getItem('himyatra_api_endpoint') || (import.meta.env.DEV ? 'http://127.0.0.1:8000' : 'https://devx-new-1.onrender.com');
   });
 
   const [apiKey, setApiKey] = useState(() => {
@@ -104,7 +104,7 @@ export function Settings() {
   };
 
   const handleResetDefaults = () => {
-    setEndpoint('http://127.0.0.1:8000');
+    setEndpoint(import.meta.env.DEV ? 'http://127.0.0.1:8000' : 'https://devx-new-1.onrender.com');
     setApiKey('dev-polar-secret-key-2026');
     setOfflineMode(false);
     setIceConcentrationAlert(70);
